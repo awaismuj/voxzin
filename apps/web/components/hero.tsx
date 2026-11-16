@@ -8,17 +8,18 @@ export function Hero({ lead, side }: { lead: ArticleSummary; side: ArticleSummar
     <section aria-label="Top stories" className="mx-auto grid max-w-7xl gap-5 px-4 pt-6 sm:px-6 lg:grid-cols-[2fr_1fr]">
       <Link
         href={`/articles/${lead.slug}`}
-        className="group relative isolate flex min-h-[26rem] flex-col justify-end overflow-hidden rounded-xl bg-navy"
+        className="group flex h-full flex-col overflow-hidden rounded-xl border border-line bg-surface"
       >
-        <StoryImage image={lead.image} sizes="(min-width: 1024px) 66vw, 100vw" priority />
-        <div className="absolute inset-0 bg-linear-to-t from-navy via-navy/60 to-transparent" aria-hidden />
-        <div className="relative p-6 text-white sm:p-8">
+        <div className="relative aspect-[3/2] bg-navy">
+          <StoryImage image={lead.image} sizes="(min-width: 1024px) 66vw, 100vw" priority fit="contain" />
+        </div>
+        <div className="p-5 sm:p-7">
           <span className="rounded bg-accent px-2 py-1 text-xs font-semibold text-navy">{lead.category.name}</span>
-          <h1 className="mt-3 max-w-2xl font-serif text-3xl font-semibold leading-tight group-hover:underline sm:text-4xl">
+          <h1 className="mt-3 max-w-2xl font-serif text-2xl font-semibold leading-tight group-hover:underline sm:text-3xl">
             {lead.title}
           </h1>
-          <p className="mt-3 line-clamp-2 max-w-xl text-white/80">{lead.excerpt}</p>
-          <StoryMeta publishedAt={lead.publishedAt} readingTime={lead.readingTime} className="mt-4 text-white/70" />
+          <p className="mt-3 line-clamp-2 max-w-xl text-muted">{lead.excerpt}</p>
+          <StoryMeta publishedAt={lead.publishedAt} readingTime={lead.readingTime} className="mt-4 text-muted" />
         </div>
       </Link>
 
@@ -30,7 +31,7 @@ export function Hero({ lead, side }: { lead: ArticleSummary; side: ArticleSummar
                 href={`/articles/${s.slug}`}
                 className="group flex h-full overflow-hidden rounded-lg border border-line bg-surface"
               >
-                <div className="relative w-28 shrink-0 sm:w-32">
+                <div className="relative w-28 shrink-0 bg-navy sm:w-32">
                   <StoryImage image={s.image} sizes="128px" />
                 </div>
                 <div className="p-3">

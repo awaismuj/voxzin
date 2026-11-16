@@ -86,8 +86,8 @@ export default async function ArticlePage({ params }: Props) {
         </p>
       </header>
 
-      <div className="relative mx-auto mt-8 aspect-[16/9] max-w-4xl overflow-hidden rounded-xl bg-bg">
-        <StoryImage image={a.image} sizes="(min-width: 896px) 896px, 100vw" priority />
+      <div className="relative mx-auto mt-8 aspect-[3/2] max-w-4xl overflow-hidden rounded-xl bg-navy">
+        <StoryImage image={a.image} sizes="(min-width: 896px) 896px, 100vw" priority fit="contain" />
       </div>
 
       <div className="mx-auto mt-10 max-w-3xl">
