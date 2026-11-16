@@ -19,7 +19,11 @@ pipeline {
     stage('Pull and deploy on target') {
       steps {
         checkout scm
-        sh '''
+        withCredentials([
+          file(credentialsId: 'cloudflare-origin-cert', variable: 'ORIGIN_CERT'),
+          file(credentialsId: 'cloudflare-origin-key', variable: 'ORIGIN_KEY')
+        ]) {
+          sh '''
           set -euo pipefail
           case "$DEPLOY_HOST" in
             ""|*[!A-Za-z0-9.-]*) echo "Invalid DEPLOY_HOST" >&2; exit 2 ;;
@@ -39,12 +43,24 @@ pipeline {
             exit 2
           fi
 
+          TLS_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TLS_DIR"' EXIT
+          install -m 640 "$ORIGIN_CERT" "$TLS_DIR/origin.pem"
+          install -m 640 "$ORIGIN_KEY" "$TLS_DIR/origin.key"
+
+          tar -C "$TLS_DIR" -czf - origin.pem origin.key | \
+            ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new \
+              -o IdentitiesOnly=yes -i "$SSH_KEY" "$DEPLOY_USER@$DEPLOY_HOST" \
+              "install -d -m 750 '$APP_DIR/infrastructure/nginx/certs' && \
+                umask 027 && tar -xzf - -C '$APP_DIR/infrastructure/nginx/certs'"
+
           git archive --format=tar HEAD | gzip -c | \
             ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new \
               -o IdentitiesOnly=yes -i "$SSH_KEY" "$DEPLOY_USER@$DEPLOY_HOST" \
               "mkdir -p '$APP_DIR' && tar -xzf - -C '$APP_DIR' && \
                 cd '$APP_DIR' && IMAGE_TAG='$IMAGE_TAG' bash infrastructure/scripts/remote-deploy.sh"
-        '''
+          '''
+        }
       }
     }
   }

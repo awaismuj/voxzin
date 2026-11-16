@@ -15,6 +15,10 @@ coverage/
 .env.*
 !.env.example
 
+# Cloudflare Origin CA credentials
+/infrastructure/nginx/certs/origin.pem
+/infrastructure/nginx/certs/origin.key
+
 # Logs
 *.log
 npm-debug.log*

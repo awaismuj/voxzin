@@ -5,6 +5,8 @@ set -euo pipefail
 COMPOSE="docker compose -p strongpassweb -f docker-compose.prod.yml"
 NEW="${IMAGE_TAG:?set IMAGE_TAG}"
 PREV="$(cat .deployed-tag 2>/dev/null || true)"
+NGINX_CERT_GID="${NGINX_CERT_GID:-$(stat -c '%g' infrastructure/nginx/certs/origin.key)}"
+export NGINX_CERT_GID
 
 rollback() {
   if [ -z "$PREV" ]; then
