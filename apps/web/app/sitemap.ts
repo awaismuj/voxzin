@@ -1,0 +1,29 @@
+import type { MetadataRoute } from 'next';
+import { getSitemapData } from '@/lib/api';
+import { SITE_URL } from '@/lib/site';
+
+export const dynamic = 'force-dynamic';
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const { articles, categories, latestPages } = await getSitemapData();
+  return [
+    { url: `${SITE_URL}/`, changeFrequency: 'hourly', priority: 1 },
+    { url: `${SITE_URL}/about`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${SITE_URL}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${SITE_URL}/terms`, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${SITE_URL}/latest`, changeFrequency: 'hourly' },
+    { url: `${SITE_URL}/trending`, changeFrequency: 'hourly' },
+    ...Array.from({ length: Math.max(0, latestPages - 1) }, (_, index) => ({
+      url: `${SITE_URL}/latest/page/${index + 2}`,
+      changeFrequency: 'hourly' as const,
+    })),
+    ...categories.flatMap((category) => [
+      { url: `${SITE_URL}/${category.slug}`, changeFrequency: 'daily' as const },
+      ...Array.from({ length: Math.max(0, category.pages - 1) }, (_, index) => ({
+        url: `${SITE_URL}/${category.slug}/page/${index + 2}`,
+        changeFrequency: 'daily' as const,
+      })),
+    ]),
+    ...articles.map((a) => ({ url: `${SITE_URL}/articles/${a.slug}`, lastModified: new Date(a.updatedAt) })),
+  ];
+}

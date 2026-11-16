@@ -1,0 +1,13 @@
+# Deployment (Ubuntu 24.04, Docker, Nginx, Cloudflare)
+
+1. **Server:** `apt update && apt upgrade`, enable `unattended-upgrades`, create a non-root `deploy` user, SSH keys only (`PasswordAuthentication no`), `fail2ban`.
+2. **Firewall (UFW):** default deny incoming; allow SSH from your IP; allow 80/443 **only from Cloudflare ranges** (`infrastructure/scripts/update-cloudflare-ips.sh` lists them). Never open 27017 or 6379.
+3. **MongoDB:** use a managed cluster or a private host with auth + TLS and a least-privilege user. Put its URI in `.env.production`.
+4. **Env:** copy `.env.example` to `.env.production`; production values for every secret; `NODE_ENV=production`, `CORS_ORIGINS=https://voxzin.com`, `SITE_URL`, `API_URL=http://api:4000/v1`. Configure either `SMTP_URL` or `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and optionally `SMTP_FROM` to send email. Keep SMTP credentials out of Git.
+5. **TLS:** create a Cloudflare Origin CA certificate, save as `infrastructure/nginx/certs/origin.pem` and `origin.key`; set Cloudflare SSL/TLS to **Full (strict)**.
+6. **Cloudflare:** managed WAF rules, bot fight mode, rate limiting on `/api/v1/auth/*`, Always HTTPS, proxy DNS records.
+7. **Build and push** images with Jenkins (see `Jenkinsfile`) or locally: `docker build -f infrastructure/docker/Dockerfile --target web --build-arg NEXT_PUBLIC_SITE_URL=https://voxzin.com -t voxzin-web .` (also `api`, `worker`). `API_URL` is baked into the web build.
+8. **Run:** `IMAGE_TAG=<tag> infrastructure/scripts/deploy.sh` (health-checks, rolls back automatically). The API image prepares `/data/uploads` for its non-root user, and the one-shot `uploads-init` service fixes ownership on the persistent uploads volume before the API starts. This preserves existing image files. First time: run `pnpm db:seed` and `pnpm create-admin` against the production database from a trusted machine.
+   Admins can invite team members from **Admin → Users**. The email link expires after 24 hours; invitees create their own password and must set up two-step verification at first sign-in. Bootstrap the admin with `ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_ROLE`, and a one-time `ADMIN_PASSWORD` supplied in the shell; do not keep `ADMIN_PASSWORD` in `.env.production`.
+9. **Backups:** schedule `infrastructure/scripts/backup-mongo.sh` (cron), then test a restore (BACKUP-RESTORE.md).
+10. **Monitoring:** not wired in code yet. Add Sentry DSN, OpenTelemetry exporter and uptime checks, and alert on container restarts and repeated `auth.login_failed` audit events.

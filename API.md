@@ -1,0 +1,7 @@
+# API (prefix /v1; browsers use /api/v1 on the web origin)
+
+Public (GET unless noted): `/home`, `/articles?category&page&limit`, `/articles/:slug`, `/search?q&category&page`, `/categories`, `/countries`, `/trending?country&category`, `/trending/:slug?country`, `/settings`, `/sitemap`, `/media/:file`, `/health`; `POST /newsletter/subscribe|confirm|unsubscribe`.
+Auth: `POST /auth/login`, `/auth/logout`, `GET /auth/me`, `POST /auth/mfa/setup|enable|verify`.
+Admin (session + role + MFA): `/admin/articles` (list, get, create, PATCH, `POST :id/transition`, DELETE admin+), `/admin/categories`, `/admin/countries`, `/admin/authors`, `/admin/users` (+ `revoke-sessions`, `reset-mfa`), `/admin/settings`, `/admin/stats`, `/admin/trending`, `POST /admin/ai/assist`, `GET /media` (authenticated, paginated library), `POST /media` (authenticated image upload with optional alt text), `PATCH /media/:file` (update image alt text).
+Workflow: research/idea/draft → in_review → approved → scheduled/published → archived. Authors stop at in_review. Scheduling or publishing needs at least one source. Scheduled articles go live via the worker (checked every minute).
+Not yet implemented: OpenAPI/Swagger docs, API versioning beyond the /v1 prefix.
