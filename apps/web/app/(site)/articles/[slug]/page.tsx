@@ -76,17 +76,19 @@ export default async function ArticlePage({ params }: Props) {
             <li><Link href={`/${a.category.slug}`} className="font-semibold text-accent-ink hover:underline">{a.category.name}</Link></li>
           </ol>
         </nav>
-        <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight sm:text-5xl">{a.title}</h1>
-        {a.subtitle && <p className="mt-3 font-serif text-xl text-muted">{a.subtitle}</p>}
-        <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
-          <span className="font-medium text-ink">{a.author.name}</span>
+        <h1 className="mt-3 font-serif text-3xl font-bold leading-tight tracking-tight sm:text-5xl">{a.title}</h1>
+        {a.subtitle && a.subtitle.trim().toLowerCase() !== a.title.trim().toLowerCase() && (
+          <p className="mt-4 text-lg leading-relaxed text-muted sm:text-xl">{a.subtitle}</p>
+        )}
+        <p className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 border-y border-line py-3 text-sm text-muted">
+          <span className="font-semibold text-ink">By {a.author.name}</span>
           <time dateTime={a.publishedAt}>Published {formatDate(a.publishedAt)}</time>
           {updated && <time dateTime={a.updatedAt}>Updated {formatDate(a.updatedAt)}</time>}
           <span>{a.readingTime} min read</span>
         </p>
       </header>
 
-      <div className="relative mx-auto mt-8 aspect-[3/2] max-w-4xl overflow-hidden rounded-xl bg-navy">
+      <div className="relative mx-auto mt-8 aspect-video max-w-4xl overflow-hidden rounded-2xl bg-navy shadow-sm">
         <StoryImage image={a.image} sizes="(min-width: 896px) 896px, 100vw" priority fit="contain" />
       </div>
 
@@ -111,7 +113,7 @@ export default async function ArticlePage({ params }: Props) {
 
       {a.related.length > 0 && (
         <section aria-labelledby="related-heading" className="mt-16">
-          <h2 id="related-heading" className="mb-4 font-serif text-2xl font-semibold">Related articles</h2>
+          <h2 id="related-heading" className="mb-5 border-l-4 border-accent pl-3 text-2xl font-bold tracking-tight">Related articles</h2>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {a.related.map((r) => (
               <ArticleCard key={r.id} article={r} />
