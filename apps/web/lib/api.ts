@@ -9,8 +9,9 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, revalidate = 60): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, { next: { revalidate } });
+async function request<T>(path: string, revalidate: number | false = 60): Promise<T> {
+  const options = revalidate === false ? { cache: 'no-store' as const } : { next: { revalidate } };
+  const res = await fetch(`${API_URL}${path}`, options);
   if (!res.ok) throw new ApiError(res.status, `API request failed (${res.status})`);
   return (await res.json()) as T;
 }
@@ -36,4 +37,4 @@ export const getSitemapData = () => request<{
   articles: { slug: string; updatedAt: string }[];
   categories: { slug: string; pages: number }[];
   latestPages: number;
-}>('/sitemap', 600);
+}>('/sitemap', false);

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArticleCard } from '@/components/article-card';
 import { CategoryBar } from '@/components/category-bar';
@@ -5,6 +6,10 @@ import { EmptyState } from '@/components/empty-state';
 import { Hero } from '@/components/hero';
 import { Ticker } from '@/components/ticker';
 import { getHome } from '@/lib/api';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 export const dynamic = 'force-dynamic';
 

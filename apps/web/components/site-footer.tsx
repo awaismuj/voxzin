@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { getCategories, getPublicSettings } from '@/lib/api';
+import { BrandLogo } from './brand-logo';
 import { NewsletterForm } from './newsletter-form';
 
 export async function SiteFooter() {
@@ -9,13 +9,7 @@ export async function SiteFooter() {
     <footer className="mt-20 bg-navy text-white/80">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.5fr_2fr]">
         <div>
-          <Image
-            src="/voxzin-logo.png"
-            alt="Voxzin — Every trend. Every voice."
-            width={356}
-            height={84}
-            className="h-12 w-auto"
-          />
+          <BrandLogo />
           <p className="mt-2 max-w-sm text-sm leading-relaxed">
             {settings.tagline || "The voice of today's trending stories."} Global news, technology, AI, business, science, culture and practical insights, carefully sourced.
           </p>

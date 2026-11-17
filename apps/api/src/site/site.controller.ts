@@ -18,7 +18,7 @@ export class SiteController {
   }
 
   @Get('sitemap')
-  @Header('Cache-Control', 'public, s-maxage=600')
+  @Header('Cache-Control', 'no-store')
   async sitemap() {
     const filter = { status: 'published', publishedAt: { $lte: new Date() } };
     const [rows, activeCategories, articleCount] = await Promise.all([
