@@ -31,6 +31,11 @@ const schema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().trim().min(1).optional(),
   MAIL_FROM: z.string().default('Voxzin <no-reply@voxzin.com>'),
+  // Admin sign-in managed from the environment (see auth/admin-bootstrap.service.ts). Blank values count as unset.
+  ADMIN_EMAIL: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().trim().email().optional()),
+  ADMIN_PASSWORD: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
+  ADMIN_NAME: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().trim().max(100).optional()),
+  ADMIN_ROLE: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().optional()),
   AI_PROVIDER: z.enum(['anthropic']).optional(),
   AI_API_KEY: z.string().optional(),
   AI_MODEL: z.string().default('claude-sonnet-5-5'),

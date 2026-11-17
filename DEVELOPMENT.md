@@ -7,6 +7,7 @@ cp .env apps/web/.env.local     # Next.js does not read the root .env (only API_
 pnpm infra:up                   # MongoDB + Redis on 127.0.0.1
 pnpm db:seed                   # default categories/countries + indexes
 ADMIN_EMAIL=you@example.com ADMIN_NAME="Your Name" ADMIN_ROLE=super_admin ADMIN_PASSWORD='at-least-12-chars' pnpm create-admin
+# or put the same four ADMIN_* values in .env: the API then syncs the account each time it starts
 pnpm dev                        # web :3000, api :4000, worker
 ```
 First sign-in at `/admin/login` forces MFA setup (authenticator app). `pnpm db:seed:sample` adds clearly labelled [Sample] articles for layout review (dev only).
