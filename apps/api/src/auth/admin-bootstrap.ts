@@ -24,6 +24,7 @@ export const normalizeRole = (value?: string): Role | undefined => {
 type ExistingUser = {
   _id: { toString(): string };
   passwordHash?: string;
+  envPasswordHash?: string;
   role?: string;
   name?: string;
   isActive?: boolean;
@@ -31,9 +32,11 @@ type ExistingUser = {
 };
 
 /**
- * Makes the admin account match the given settings (the .env file is the source of truth).
- * - Creates the account when it does not exist; otherwise updates name, role and password.
- * - Only re-hashes and signs the user out of other sessions when the password actually changed.
+ * Makes the admin account match the env file settings.
+ * - Creates the account when it does not exist; keeps name and role in step with the env.
+ * - The env password is applied only when it is new or has been changed in the env file. After that the
+ *   password can be changed by the emailed reset link without a restart undoing it.
+ * - A newly applied password signs the user out of other sessions and clears any lockout.
  * - Never logs or returns the password. Existing two-step verification (MFA) is left untouched.
  */
 export async function ensureAdmin(
@@ -59,31 +62,39 @@ export async function ensureAdmin(
 
   const existing = (await models.users
     .findOne({ email })
-    .select('passwordHash role name isActive authorId')
+    .select('+passwordHash +envPasswordHash role name isActive authorId')
     .lean()) as ExistingUser | null;
 
-  const passwordUnchanged = Boolean(
-    existing?.passwordHash && (await argon2.verify(existing.passwordHash, password).catch(() => false)),
-  );
+  const verifies = (hash?: string) => (hash ? argon2.verify(hash, password).catch(() => false) : Promise.resolve(false));
+  // Has this exact env password already been applied before? (Then leave the current password alone.)
+  const envAlreadyApplied = await verifies(existing?.envPasswordHash);
+  const currentMatchesEnv = envAlreadyApplied ? false : await verifies(existing?.passwordHash);
+
+  const set: Record<string, unknown> = { name, role, isActive: true, authorId: author._id };
+  const update: Record<string, unknown> = { $set: set };
+  let passwordApplied = false;
+  if (!envAlreadyApplied) {
+    if (currentMatchesEnv) {
+      set.envPasswordHash = existing!.passwordHash; // already the same password; just remember it was applied
+    } else {
+      const hash = await argon2.hash(password, { type: argon2.argon2id });
+      set.passwordHash = hash;
+      set.envPasswordHash = hash;
+      set.failedLogins = 0;
+      update.$unset = { lockedUntil: '' };
+      passwordApplied = true;
+    }
+  }
+
   const profileUnchanged =
     existing?.role === role &&
     existing?.name === name &&
     existing?.isActive === true &&
     existing?.authorId?.toString() === author._id.toString();
+  if (existing && envAlreadyApplied && profileUnchanged) return { status: 'unchanged', email, role };
 
-  if (existing && passwordUnchanged && profileUnchanged) return { status: 'unchanged', email, role };
-
-  const set: Record<string, unknown> = { name, role, isActive: true, authorId: author._id };
-  const update: Record<string, unknown> = { $set: set };
-  if (!passwordUnchanged) {
-    set.passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-    set.failedLogins = 0;
-    update.$unset = { lockedUntil: '' };
-  }
   await models.users.updateOne({ email }, update, { upsert: true });
-
-  // A new password invalidates every session that was opened with the old one.
-  if (existing && !passwordUnchanged) await models.sessions.deleteMany({ userId: existing._id });
+  if (existing && passwordApplied) await models.sessions.deleteMany({ userId: existing._id });
 
   return { status: existing ? 'updated' : 'created', email, role };
 }

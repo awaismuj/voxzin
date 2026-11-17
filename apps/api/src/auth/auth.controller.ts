@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
-import { inviteAcceptInput, loginInput, mfaCodeInput } from '@voxzin/shared';
+import { inviteAcceptInput, loginInput, mfaCodeInput, passwordResetConfirmInput, passwordResetRequestInput } from '@voxzin/shared';
 import { ZodPipe } from '../common/zod.pipe';
 import type { AuthedRequest } from '../common/types';
 import { env } from '../config/env';
@@ -32,6 +32,20 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async acceptInvitation(@Body(new ZodPipe(inviteAcceptInput)) body: { token: string; password: string }) {
     await this.auth.acceptInvite(body.token, body.password);
+  }
+
+  @Post('password-reset/request')
+  @HttpCode(204)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  async requestPasswordReset(@Body(new ZodPipe(passwordResetRequestInput)) body: { email: string }, @Req() req: AuthedRequest) {
+    await this.auth.requestPasswordReset(body.email, req.ip);
+  }
+
+  @Post('password-reset/confirm')
+  @HttpCode(204)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async confirmPasswordReset(@Body(new ZodPipe(passwordResetConfirmInput)) body: { token: string; password: string }, @Req() req: AuthedRequest) {
+    await this.auth.resetPassword(body.token, body.password, req.ip);
   }
 
   @Post('logout')

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as argon2 from 'argon2';
 import { authenticator } from 'otplib';
@@ -7,6 +7,7 @@ import { PRIVILEGED_ROLES } from '@voxzin/shared';
 import { decrypt, encrypt, randomToken, sha256 } from '../common/crypto';
 import type { AuthSession, AuthUser, M } from '../common/types';
 import { env } from '../config/env';
+import { MailService } from '../newsletter/mail.service';
 import { AuditService } from './audit.service';
 
 authenticator.options = { window: 1 }; // tolerate one 30s step of clock drift
@@ -14,6 +15,8 @@ authenticator.options = { window: 1 }; // tolerate one 30s step of clock drift
 export const SESSION_COOKIE = 'sp_session';
 const MAX_FAILS = 5;
 const LOCK_MS = 15 * 60_000;
+const RESET_TTL_MS = 30 * 60_000;
+const RESET_COOLDOWN_MS = 60_000; // at most one reset email per account per minute
 
 export const publicUser = (u: AuthUser, mfaVerified: boolean) => ({
   id: u._id.toString(),
@@ -28,11 +31,13 @@ export const publicUser = (u: AuthUser, mfaVerified: boolean) => ({
 @Injectable()
 export class AuthService {
   private dummyHash?: Promise<string>;
+  private readonly log = new Logger('PasswordReset');
 
   constructor(
     @InjectModel('User') private readonly users: M,
     @InjectModel('Session') private readonly sessions: M,
     private readonly audit: AuditService,
+    private readonly mail: MailService,
   ) {}
 
   private dummy() {
@@ -99,6 +104,58 @@ export class AuthService {
       },
     );
     if (result.modifiedCount !== 1) throw new BadRequestException('This invitation link is invalid or expired');
+  }
+
+  /**
+   * Emails a one-time reset link. Always resolves the same way whether or not the address belongs to an
+   * account, so the form cannot be used to find out which emails are registered.
+   */
+  async requestPasswordReset(email: string, ip?: string) {
+    const user = await this.users
+      .findOne({ email, isActive: true })
+      .select('name resetExpiresAt')
+      .lean<{ _id: { toString(): string }; name: string; resetExpiresAt?: Date }>();
+    if (!user) return;
+    const issuedAt = user.resetExpiresAt ? user.resetExpiresAt.getTime() - RESET_TTL_MS : 0;
+    if (Date.now() - issuedAt < RESET_COOLDOWN_MS) return; // a link was sent a moment ago
+
+    const token = randomToken();
+    await this.users.updateOne(
+      { _id: user._id },
+      { $set: { resetTokenHash: sha256(token), resetExpiresAt: new Date(Date.now() + RESET_TTL_MS) } },
+    );
+    await this.audit.log(user._id.toString(), 'auth.password_reset_requested', { type: 'user', id: user._id.toString() }, {}, ip);
+
+    // The token travels in the URL fragment, so it is not sent to the server or written to access logs.
+    const link = `${env.SITE_URL.replace(/\/+$/, '')}/admin/reset-password#${token}`;
+    // Not awaited: the response time must not reveal whether an email was sent.
+    void this.mail
+      .send(
+        email,
+        'Reset your Voxzin password',
+        `Hello ${user.name},\n\nWe received a request to reset your Voxzin password. Use this link within 30 minutes:\n${link}\n\nIf you did not ask for this, you can ignore this email. Your password will not change.\n`,
+      )
+      .catch(() => this.log.error('Could not send the password reset email. Check the SMTP settings.'));
+  }
+
+  async resetPassword(token: string, password: string, ip?: string) {
+    const invalid = () => new BadRequestException('This reset link is invalid or has expired. Request a new one.');
+    const filter = { resetTokenHash: sha256(token), resetExpiresAt: { $gt: new Date() }, isActive: true };
+    const user = await this.users.findOne(filter).select('_id email name').lean<{ _id: { toString(): string }; email: string; name: string }>();
+    if (!user) throw invalid();
+    const result = await this.users.updateOne(
+      { ...filter, _id: user._id },
+      {
+        $set: { passwordHash: await this.hashPassword(password), failedLogins: 0 },
+        $unset: { resetTokenHash: 1, resetExpiresAt: 1, lockedUntil: 1 },
+      },
+    );
+    if (result.modifiedCount !== 1) throw invalid(); // the link was used by someone else a moment ago
+    await this.revokeAll(user._id.toString()); // signs out every session opened with the old password
+    await this.audit.log(user._id.toString(), 'auth.password_reset_completed', { type: 'user', id: user._id.toString() }, {}, ip);
+    void this.mail
+      .send(user.email, 'Your Voxzin password was changed', `Hello ${user.name},\n\nThe password for your Voxzin account was just changed. If this was not you, contact the site owner right away.\n`)
+      .catch(() => undefined);
   }
 
   async revokeAll(userId: string) {

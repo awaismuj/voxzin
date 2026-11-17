@@ -183,6 +183,11 @@ const imageUrl = z
   .refine((u) => u.startsWith('https://') || u.startsWith('/api/v1/media/'), 'Use an uploaded or https image');
 
 export const loginInput = z.object({ email: emailSchema, password: z.string().min(1).max(200) });
+export const passwordResetRequestInput = z.object({ email: emailSchema });
+export const passwordResetConfirmInput = z.object({
+  token: z.string().min(32).max(200),
+  password: z.string().min(12, 'Use at least 12 characters').max(200),
+});
 export const mfaCodeInput = z.object({ code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code') });
 
 export const articleInput = z.object({

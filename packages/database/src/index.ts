@@ -87,6 +87,10 @@ export const UserSchema = new Schema(
     mfa: { secretEnc: { type: String }, enabled: { type: Boolean, default: false } },
     inviteTokenHash: { type: String, select: false },
     inviteExpiresAt: { type: Date, select: false },
+    resetTokenHash: { type: String, select: false },
+    resetExpiresAt: { type: Date, select: false },
+    /** Hash of the ADMIN_PASSWORD from the env file that was last applied, so a restart only re-applies it when it changes. */
+    envPasswordHash: { type: String, select: false },
     failedLogins: { type: Number, default: 0 },
     lockedUntil: { type: Date },
     lastLoginAt: { type: Date },

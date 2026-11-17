@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { adminFetch } from '@/lib/admin-client';
@@ -40,6 +41,7 @@ export function LoginForm() {
         <>
           <div><label className={label} htmlFor="email">Email</label><input id="email" name="email" type="email" required autoComplete="username" className={input} /></div>
           <div><label className={label} htmlFor="password">Password</label><input id="password" name="password" type="password" required autoComplete="current-password" className={input} /></div>
+          <p className="text-right text-sm"><Link href="/admin/forgot-password" className="underline">Forgot password?</Link></p>
         </>
       ) : (
         <div>
