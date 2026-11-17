@@ -12,7 +12,7 @@ export default function AboutPage() {
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <p className="text-sm font-semibold uppercase tracking-wide text-accent-ink">About us</p>
-      <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight">The voice of today's trending stories.</h1>
+      <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight">The Voice of What's Trending.</h1>
       <div className="article-body mt-8">
         <p>
           VoxZin is an independent digital publication covering the developments, ideas and conversations shaping people&apos;s lives. We make complex and fast-moving topics easier to understand, with context readers can use.
@@ -42,7 +42,7 @@ export default function AboutPage() {
           If you spot a factual error or have a question about our work, contact us using the email address shown in the site footer. VoxZin values specific, verifiable feedback and will review it.
         </p>
 
-        <p><strong>VoxZin — The voice of today's trending stories.</strong></p>
+        <p><strong>VoxZin — The Voice of What's Trending.</strong></p>
       </div>
     </article>
   );

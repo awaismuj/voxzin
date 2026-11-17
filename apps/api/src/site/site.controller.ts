@@ -14,7 +14,7 @@ export class SiteController {
   @Header('Cache-Control', 'public, s-maxage=300')
   async publicSettings() {
     const s = await this.settings.findOne({ key: 'main' }).select('brandName tagline contactEmail social').lean();
-    return s ?? { brandName: 'VoxZin', tagline: "The voice of today's trending stories.", contactEmail: '', social: {} };
+    return s ?? { brandName: 'VoxZin', tagline: "The Voice of What's Trending.", contactEmail: '', social: {} };
   }
 
   @Get('sitemap')

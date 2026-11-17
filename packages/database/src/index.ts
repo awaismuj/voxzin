@@ -179,7 +179,7 @@ export const SiteSettingsSchema = new Schema(
   {
     key: { type: String, required: true, unique: true, default: 'main' },
     brandName: { type: String, default: 'VoxZin' },
-    tagline: { type: String, default: "The voice of today's trending stories." },
+    tagline: { type: String, default: "The Voice of What's Trending." },
     contactEmail: { type: String, default: '' },
     publishingTargetPerDay: { type: Number, default: 6 },
     social: { x: String, facebook: String, youtube: String, linkedin: String },

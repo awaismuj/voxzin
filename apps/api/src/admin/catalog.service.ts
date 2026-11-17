@@ -223,7 +223,7 @@ export class CatalogService {
 
   // ---- settings
   async getSettings() {
-    return (await this.settings.findOne({ key: 'main' }).lean()) ?? { key: 'main', brandName: 'VoxZin', tagline: "The voice of today's trending stories.", contactEmail: '', publishingTargetPerDay: 6, social: {} };
+    return (await this.settings.findOne({ key: 'main' }).lean()) ?? { key: 'main', brandName: 'VoxZin', tagline: "The Voice of What's Trending.", contactEmail: '', publishingTargetPerDay: 6, social: {} };
   }
   async saveSettings(actor: AuthUser, input: z.infer<typeof settingsInput>) {
     await this.settings.updateOne({ key: 'main' }, { $set: input }, { upsert: true });

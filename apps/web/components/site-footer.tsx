@@ -9,8 +9,7 @@ export async function SiteFooter() {
     <footer className="mt-20 bg-navy text-white/80">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.5fr_2fr]">
         <div>
-          <BrandLogo className="h-10 text-white" />
-          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.22em] text-white/60">Every trend. Every voice.</p>
+          <BrandLogo tagline taglineClassName="block" className="text-white" />
           <p className="mt-3 max-w-sm text-sm leading-relaxed">
             Global news, technology, AI, business, science, culture and practical insights, carefully sourced.
           </p>

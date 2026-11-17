@@ -11,13 +11,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'VoxZin',
-    title: "VoxZin | The voice of today's trending stories.",
+    title: "VoxZin | The Voice of What's Trending.",
     description: 'Carefully sourced global news, technology, AI, business, science and culture.',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: "VoxZin | The voice of today's trending stories.",
+    title: "VoxZin | The Voice of What's Trending.",
     description: 'Carefully sourced global news, technology, AI, business, science and culture.',
   },
   alternates: {

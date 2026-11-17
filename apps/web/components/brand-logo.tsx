@@ -46,29 +46,67 @@ export function BrandMark({ className = 'size-9' }: { className?: string }) {
   );
 }
 
-/** Full lockup: mark + "VoxZin." The "Vox" part follows the text colour, so set it with a text-* class
- *  (text-white on dark bars, text-ink on light pages). Size it with a height class. */
-export function BrandLogo({ className, href = '/' }: { className?: string; href?: string | null }) {
-  const id = useSvgId();
-  const svg = (
-    <svg viewBox="36 50 1990.4 440" aria-hidden="true" className={cn('h-9 w-auto shrink-0', className)}>
+export const BRAND_TAGLINE = "The Voice of What's Trending.";
+
+/** "VoxZin." lettering: white-or-ink "Vox" (follows the text colour), gradient "Zin", and the glowing dot. */
+function WordmarkShapes({ id }: { id: string }) {
+  return (
+    <>
       <defs>
-        <linearGradient id={`${id}z`} gradientUnits="userSpaceOnUse" x1="1239.1" y1="0" x2="1886.4" y2="0">
+        <linearGradient id={`${id}z`} gradientUnits="userSpaceOnUse" x1="1239.2" y1="0" x2="1886.4" y2="0">
           <stop offset="0" stopColor="#ff3d85" />
           <stop offset="1" stopColor="#ffa726" />
         </linearGradient>
       </defs>
-      <MarkShapes id={id} />
       <path d={VOX_PATH} fill="currentColor" />
       <path d={ZIN_PATH} fill={`url(#${id}z)`} />
-      <circle cx="1964.4" cy="383.0" r="56" fill="#ffb020" fillOpacity=".28" />
-      <circle cx="1964.4" cy="383.0" r="29" fill="#ffb020" />
+      <circle cx="1964.4" cy="383" r="56" fill="#ffb020" fillOpacity=".28" />
+      <circle cx="1964.4" cy="383" r="29" fill="#ffb020" />
+    </>
+  );
+}
+
+/**
+ * Full lockup: mark + "VoxZin." The "Vox" part follows the text colour, so set it with a text-* class
+ * (text-white on dark bars, text-ink on light pages).
+ * - Default: one drawing, sized with a height class (e.g. h-10).
+ * - tagline: mark and name with the brand tagline written underneath as real text (sized by the component).
+ *   `taglineClassName` controls when the tagline shows (default: from the sm breakpoint up).
+ */
+export function BrandLogo({
+  className,
+  href = '/',
+  tagline = false,
+  taglineClassName = 'hidden sm:block',
+}: {
+  className?: string;
+  href?: string | null;
+  tagline?: boolean;
+  taglineClassName?: string;
+}) {
+  const id = useSvgId();
+  const content = tagline ? (
+    <span className={cn('inline-flex shrink-0 items-center gap-2.5', className)}>
+      <BrandMark className="size-9 shrink-0 sm:size-10" />
+      <span className="flex flex-col items-start gap-1.5">
+        <svg viewBox="532 108 1492.4 334" aria-hidden="true" className="h-6 w-auto sm:h-[1.85rem]">
+          <WordmarkShapes id={id} />
+        </svg>
+        <span className={cn('text-[10px] font-medium leading-none tracking-wide opacity-75 sm:text-[11px]', taglineClassName)}>
+          {BRAND_TAGLINE}
+        </span>
+      </span>
+    </span>
+  ) : (
+    <svg viewBox="36 50 1990.4 440" aria-hidden="true" className={cn('h-9 w-auto shrink-0', className)}>
+      <MarkShapes id={id} />
+      <WordmarkShapes id={id} />
     </svg>
   );
-  if (href === null) return <span role="img" aria-label="VoxZin" className="inline-flex">{svg}</span>;
+  if (href === null) return <span role="img" aria-label="VoxZin" className="inline-flex">{content}</span>;
   return (
-    <Link href={href} aria-label="VoxZin home" className="inline-flex shrink-0 items-center">
-      {svg}
+    <Link href={href} aria-label={`VoxZin home. ${BRAND_TAGLINE}`} className="inline-flex shrink-0 items-center">
+      {content}
     </Link>
   );
 }
