@@ -71,28 +71,37 @@ function WordmarkShapes({ id }: { id: string }) {
  * (text-white on dark bars, text-ink on light pages).
  * - Default: one drawing, sized with a height class (e.g. h-10).
  * - tagline: mark and name with the brand tagline written underneath as real text (sized by the component).
- *   `taglineClassName` controls when the tagline shows (default: from the sm breakpoint up).
+ *   `size` "md" suits the header, "lg" the footer; `taglineClassName` controls when the tagline shows
+ *   (default: from the sm breakpoint up).
  */
+const LOCKUP = {
+  md: { gap: 'gap-2 sm:gap-2.5', mark: 'size-7 sm:size-8', word: 'h-[1.15rem] sm:h-[1.4rem]', col: 'gap-1', tag: 'text-[9px] sm:text-[10px]' },
+  lg: { gap: 'gap-2.5', mark: 'size-9 sm:size-10', word: 'h-6 sm:h-[1.75rem]', col: 'gap-1.5', tag: 'text-[10px] sm:text-[11px]' },
+} as const;
+
 export function BrandLogo({
   className,
   href = '/',
   tagline = false,
+  size = 'md',
   taglineClassName = 'hidden sm:block',
 }: {
   className?: string;
   href?: string | null;
   tagline?: boolean;
+  size?: 'md' | 'lg';
   taglineClassName?: string;
 }) {
   const id = useSvgId();
+  const s = LOCKUP[size];
   const content = tagline ? (
-    <span className={cn('inline-flex shrink-0 items-center gap-2.5', className)}>
-      <BrandMark className="size-9 shrink-0 sm:size-10" />
-      <span className="flex flex-col items-start gap-1.5">
-        <svg viewBox="532 108 1492.4 334" aria-hidden="true" className="h-6 w-auto sm:h-[1.85rem]">
+    <span className={cn('inline-flex shrink-0 items-center', s.gap, className)}>
+      <BrandMark className={cn('shrink-0', s.mark)} />
+      <span className={cn('flex flex-col items-start', s.col)}>
+        <svg viewBox="532 108 1492.4 334" aria-hidden="true" className={cn('w-auto', s.word)}>
           <WordmarkShapes id={id} />
         </svg>
-        <span className={cn('text-[10px] font-medium leading-none tracking-wide opacity-75 sm:text-[11px]', taglineClassName)}>
+        <span className={cn('font-medium leading-none tracking-wide opacity-75', s.tag, taglineClassName)}>
           {BRAND_TAGLINE}
         </span>
       </span>
