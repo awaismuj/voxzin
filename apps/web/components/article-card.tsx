@@ -1,15 +1,13 @@
 import Link from 'next/link';
 import type { ArticleSummary } from '@voxzin/shared';
-import { StoryImage } from './story-image';
+import { StoryFrame } from './story-frame';
 import { StoryMeta } from './story-meta';
 
 export function ArticleCard({ article }: { article: ArticleSummary }) {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
       <Link href={`/articles/${article.slug}`} className="flex h-full flex-col">
-        <div className="relative aspect-video overflow-hidden bg-navy">
-          <StoryImage image={article.image} sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" fit="contain" />
-        </div>
+        <StoryFrame image={article.image} sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" mode="card" />
         <div className="flex flex-1 flex-col p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-accent-ink">{article.category.name}</p>
           <h3 className="mt-1.5 line-clamp-3 text-lg font-bold leading-snug group-hover:text-accent-ink">{article.title}</h3>

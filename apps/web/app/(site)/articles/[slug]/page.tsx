@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArticleCard } from '@/components/article-card';
 import { ArticleBody } from '@/components/article-body';
-import { StoryImage } from '@/components/story-image';
+import { StoryFrame } from '@/components/story-frame';
 import { ApiError, getArticle } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
 import { formatDate } from '@/lib/utils';
@@ -88,9 +88,13 @@ export default async function ArticlePage({ params }: Props) {
         </p>
       </header>
 
-      <div className="relative mx-auto mt-8 aspect-video max-w-4xl overflow-hidden rounded-2xl bg-navy shadow-sm">
-        <StoryImage image={a.image} sizes="(min-width: 896px) 896px, 100vw" priority fit="contain" />
-      </div>
+      <StoryFrame
+        image={a.image}
+        sizes="(min-width: 896px) 896px, 100vw"
+        mode="natural"
+        priority
+        className="mx-auto mt-8 max-w-4xl rounded-2xl shadow-sm"
+      />
 
       <div className="mx-auto mt-10 max-w-3xl">
         <ArticleBody html={a.content} />

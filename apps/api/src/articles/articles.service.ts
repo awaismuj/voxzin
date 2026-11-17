@@ -10,6 +10,7 @@ import type {
 } from '@voxzin/shared';
 import type { z } from 'zod';
 import type { searchQuery } from '@voxzin/shared';
+import { uploadedImageSize } from '../common/uploaded-image-size';
 import { sanitizeArticleHtml } from '../common/sanitize';
 
 interface Row {
@@ -34,7 +35,9 @@ interface Row {
 const livePublished = () => ({ status: 'published', publishedAt: { $lte: new Date() } });
 
 function toSummary(a: Row): ArticleSummary {
-  const img = a.featuredImage?.url ? { url: a.featuredImage.url, alt: a.featuredImage.alt ?? a.title } : null;
+  const img = a.featuredImage?.url
+    ? { url: a.featuredImage.url, alt: a.featuredImage.alt ?? a.title, ...uploadedImageSize(a.featuredImage.url) }
+    : null;
   return {
     id: a._id.toString(),
     slug: a.slug,

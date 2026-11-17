@@ -64,7 +64,8 @@ export interface ArticleSummary {
   slug: string;
   title: string;
   excerpt: string;
-  image: { url: string; alt: string } | null;
+  /** width/height are the real pixel size when known, so pages can size the picture frame to match. */
+  image: { url: string; alt: string; width?: number; height?: number } | null;
   category: { name: string; slug: string };
   publishedAt: string;
   readingTime: number;
