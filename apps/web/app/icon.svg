@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="32 51 440 440" role="img" aria-label="VoxZin"><defs><linearGradient id="ig" gradientUnits="userSpaceOnUse" x1="100" y1="435" x2="432" y2="103">
+<stop offset="0" stop-color="#902de0"/><stop offset=".36" stop-color="#db39a0"/><stop offset=".52" stop-color="#fb3d85"/>
+<stop offset=".79" stop-color="#ff7056"/><stop offset="1" stop-color="#ffa755"/></linearGradient>
+<clipPath id="ic"><path d="M147 55H357A106 106 0 0 1 463 161V305A106 106 0 0 1 357 411H224L128 487V411H147A106 106 0 0 1 41 305V161A106 106 0 0 1 147 55Z"/></clipPath></defs><path d="M147 55H357A106 106 0 0 1 463 161V305A106 106 0 0 1 357 411H224L128 487V411H147A106 106 0 0 1 41 305V161A106 106 0 0 1 147 55Z" fill="url(#ig)"/>
+<rect x="36" y="50" width="432" height="110" fill="#fff" fill-opacity=".16" clip-path="url(#ic)"/>
+<path d="M137 176L229 328L318 205" fill="none" stroke="#fff" stroke-width="35" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M293 136L388 112L366 211Z" fill="#ffe27a" stroke="#ffe27a" stroke-width="14" stroke-linejoin="round"/></svg>

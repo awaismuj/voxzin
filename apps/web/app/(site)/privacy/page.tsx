@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'Read how Voxzin handles newsletter details, essential account cookies and information needed to operate and protect the website.',
+  description: 'Read how VoxZin handles newsletter details, essential account cookies and information needed to operate and protect the website.',
   alternates: { canonical: '/privacy' },
 };
 
@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
       <p className="mt-3 text-sm text-muted">Effective date: November 13, 2026</p>
       <div className="article-body mt-8">
         <p>
-          This notice describes how Voxzin handles information when you visit voxzin.com, subscribe to our newsletter, or use an authorized administration account. It is intended to explain the site&apos;s current practices; the identity of the legal operator and any rights that apply depend on where the operator and reader are located.
+          This notice describes how VoxZin handles information when you visit voxzin.com, subscribe to our newsletter, or use an authorized administration account. It is intended to explain the site&apos;s current practices; the identity of the legal operator and any rights that apply depend on where the operator and reader are located.
         </p>
 
         <h2>Information we handle</h2>
@@ -29,7 +29,7 @@ export default function PrivacyPolicyPage() {
 
         <h2>Cookies and similar technologies</h2>
         <p>
-          The Voxzin application uses a session cookie for administrator authentication; it is not used to sign ordinary readers into accounts. The cookie is configured as HTTP-only and same-site, and is secure in production. Hosting, CDN or security providers may use their own technologies to operate or protect the service. Your browser can control or block cookies, but blocking essential cookies may prevent administrator sign-in.
+          The VoxZin application uses a session cookie for administrator authentication; it is not used to sign ordinary readers into accounts. The cookie is configured as HTTP-only and same-site, and is secure in production. Hosting, CDN or security providers may use their own technologies to operate or protect the service. Your browser can control or block cookies, but blocking essential cookies may prevent administrator sign-in.
         </p>
 
         <h2>How information is used</h2>
@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
 
         <h2>Children and external links</h2>
         <p>
-          Voxzin is a general-audience publication and is not designed to collect personal information from children. Our pages may link to third-party websites; their privacy practices are governed by their own notices, not this policy.
+          VoxZin is a general-audience publication and is not designed to collect personal information from children. Our pages may link to third-party websites; their privacy practices are governed by their own notices, not this policy.
         </p>
 
         <h2>Changes and contact</h2>

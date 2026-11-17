@@ -132,8 +132,8 @@ export class AuthService {
     void this.mail
       .send(
         email,
-        'Reset your Voxzin password',
-        `Hello ${user.name},\n\nWe received a request to reset your Voxzin password. Use this link within 30 minutes:\n${link}\n\nIf you did not ask for this, you can ignore this email. Your password will not change.\n`,
+        'Reset your VoxZin password',
+        `Hello ${user.name},\n\nWe received a request to reset your VoxZin password. Use this link within 30 minutes:\n${link}\n\nIf you did not ask for this, you can ignore this email. Your password will not change.\n`,
       )
       .catch(() => this.log.error('Could not send the password reset email. Check the SMTP settings.'));
   }
@@ -154,7 +154,7 @@ export class AuthService {
     await this.revokeAll(user._id.toString()); // signs out every session opened with the old password
     await this.audit.log(user._id.toString(), 'auth.password_reset_completed', { type: 'user', id: user._id.toString() }, {}, ip);
     void this.mail
-      .send(user.email, 'Your Voxzin password was changed', `Hello ${user.name},\n\nThe password for your Voxzin account was just changed. If this was not you, contact the site owner right away.\n`)
+      .send(user.email, 'Your VoxZin password was changed', `Hello ${user.name},\n\nThe password for your VoxZin account was just changed. If this was not you, contact the site owner right away.\n`)
       .catch(() => undefined);
   }
 
@@ -172,7 +172,7 @@ export class AuthService {
     if (user.mfa?.enabled) throw new BadRequestException('MFA is already enabled');
     const secret = authenticator.generateSecret();
     await this.users.updateOne({ _id: user._id }, { $set: { 'mfa.secretEnc': encrypt(secret), 'mfa.enabled': false } });
-    const otpauthUrl = authenticator.keyuri(user.email, 'Voxzin', secret);
+    const otpauthUrl = authenticator.keyuri(user.email, 'VoxZin', secret);
     return { secret, otpauthUrl, qrDataUrl: await QRCode.toDataURL(otpauthUrl) };
   }
 

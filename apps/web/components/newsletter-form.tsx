@@ -20,7 +20,7 @@ export function NewsletterForm() {
 
   return (
     <form onSubmit={onSubmit} className="mt-5 max-w-sm" aria-label="Newsletter signup">
-      <label htmlFor="nl-email" className="text-sm font-medium text-white">Get the Voxzin Daily Briefing</label>
+      <label htmlFor="nl-email" className="text-sm font-medium text-white">Get the VoxZin Daily Briefing</label>
       <div className="mt-2 flex gap-2">
         <input id="nl-email" name="email" type="email" required autoComplete="email" placeholder="you@example.com"
           className="min-w-0 flex-1 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50" />

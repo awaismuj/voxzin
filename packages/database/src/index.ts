@@ -178,7 +178,7 @@ MediaSchema.index({ createdAt: -1 });
 export const SiteSettingsSchema = new Schema(
   {
     key: { type: String, required: true, unique: true, default: 'main' },
-    brandName: { type: String, default: 'Voxzin' },
+    brandName: { type: String, default: 'VoxZin' },
     tagline: { type: String, default: "The voice of today's trending stories." },
     contactEmail: { type: String, default: '' },
     publishingTargetPerDay: { type: Number, default: 6 },

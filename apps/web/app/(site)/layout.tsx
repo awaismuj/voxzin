@@ -5,8 +5,8 @@ import { SITE_URL } from '@/lib/site';
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
-    { '@type': 'Organization', name: 'Voxzin', url: SITE_URL },
-    { '@type': 'WebSite', name: 'Voxzin', url: SITE_URL,
+    { '@type': 'Organization', name: 'VoxZin', url: SITE_URL },
+    { '@type': 'WebSite', name: 'VoxZin', url: SITE_URL,
       potentialAction: { '@type': 'SearchAction', target: `${SITE_URL}/search?q={search_term_string}`, 'query-input': 'required name=search_term_string' } },
   ],
 };

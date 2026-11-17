@@ -1,3 +1,4 @@
+import { BrandLogo } from '@/components/brand-logo';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { LogoutButton } from '@/components/admin/logout-button';
@@ -28,7 +29,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   return (
     <div className="md:flex">
       <aside className="border-b border-line bg-navy p-4 text-white md:min-h-screen md:w-56 md:border-b-0">
-        <p className="font-serif text-xl font-semibold">Voxzin</p>
+        <BrandLogo href="/admin" className="h-8 text-white" />
         <p className="text-xs text-white/60">{me.name} · {me.role.replace('_', ' ')}</p>
         <nav aria-label="Admin" className="mt-4 flex flex-wrap gap-1 md:flex-col">
           {LINKS.filter((l) => l.roles.includes(me.role)).map((l) => (

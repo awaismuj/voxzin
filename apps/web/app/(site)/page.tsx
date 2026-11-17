@@ -19,7 +19,7 @@ export default async function HomePage() {
   if (!feed.hero) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 sm:px-6">
-        <h1 className="mb-4 font-serif text-4xl font-semibold">Voxzin news and insights</h1>
+        <h1 className="mb-4 font-serif text-4xl font-semibold">VoxZin news and insights</h1>
         <EmptyState
           title="No stories published yet"
           body="The homepage fills in as soon as the first article is published. Add one from the admin dashboard or run the development sample seed."
@@ -36,7 +36,7 @@ export default async function HomePage() {
       {feed.trending.length > 0 && (
         <section aria-labelledby="trending-heading" className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
           <div className="mb-3 flex items-baseline justify-between">
-            <h2 id="trending-heading" className="border-l-4 border-accent pl-3 text-2xl font-bold tracking-tight">Trending now</h2>
+            <h2 id="trending-heading" className="section-title text-2xl font-bold tracking-tight">Trending now</h2>
             <Link href="/trending" className="text-sm font-medium text-accent-ink hover:underline">All trends</Link>
           </div>
           <ul className="flex flex-wrap gap-2">
@@ -53,7 +53,7 @@ export default async function HomePage() {
       {feed.featured.length > 0 && (
         <section aria-labelledby="featured-heading" className="mx-auto mt-10 max-w-7xl px-4 sm:px-6">
           <div className="mb-4 flex items-baseline justify-between">
-            <h2 id="featured-heading" className="border-l-4 border-accent pl-3 text-2xl font-bold tracking-tight">Featured articles</h2>
+            <h2 id="featured-heading" className="section-title text-2xl font-bold tracking-tight">Featured articles</h2>
             <Link href="/latest" className="text-sm font-medium text-accent-ink hover:underline">View all</Link>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

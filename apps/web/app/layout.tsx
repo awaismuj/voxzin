@@ -5,19 +5,19 @@ import './globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: 'Voxzin | Global News, Technology & Trending Stories', template: '%s | Voxzin' },
-  description: 'Stay informed with carefully sourced global news, technology, AI, business, science, culture and practical insights from Voxzin.',
-  applicationName: 'Voxzin',
+  title: { default: 'VoxZin | Global News, Technology & Trending Stories', template: '%s | VoxZin' },
+  description: 'Stay informed with carefully sourced global news, technology, AI, business, science, culture and practical insights from VoxZin.',
+  applicationName: 'VoxZin',
   openGraph: {
     type: 'website',
-    siteName: 'Voxzin',
-    title: "Voxzin | The voice of today's trending stories.",
+    siteName: 'VoxZin',
+    title: "VoxZin | The voice of today's trending stories.",
     description: 'Carefully sourced global news, technology, AI, business, science and culture.',
     locale: 'en_US',
   },
   twitter: {
-    card: 'summary',
-    title: "Voxzin | The voice of today's trending stories.",
+    card: 'summary_large_image',
+    title: "VoxZin | The voice of today's trending stories.",
     description: 'Carefully sourced global news, technology, AI, business, science and culture.',
   },
   alternates: {

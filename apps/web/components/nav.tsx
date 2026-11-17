@@ -24,7 +24,7 @@ export function Nav({ items }: { items: { href: string; label: string }[] }) {
                 aria-current={isActive(item.href) ? 'page' : undefined}
                 className={cn(
                   'block border-b-2 px-3 py-5 text-sm font-medium text-white/80 hover:text-white',
-                  isActive(item.href) ? 'border-accent text-white' : 'border-transparent',
+                  isActive(item.href) ? 'border-[#ff3d85] text-white' : 'border-transparent',
                 )}
               >
                 {item.label}

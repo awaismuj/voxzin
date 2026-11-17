@@ -52,7 +52,7 @@ export default async function ArticlePage({ params }: Props) {
         datePublished: a.publishedAt,
         dateModified: a.updatedAt,
         author: { '@type': 'Person', name: a.author.name },
-        publisher: { '@type': 'Organization', name: 'Voxzin', url: SITE_URL },
+        publisher: { '@type': 'Organization', name: 'VoxZin', url: SITE_URL },
         mainEntityOfPage: `${SITE_URL}/articles/${a.slug}`,
       },
       {
@@ -117,7 +117,7 @@ export default async function ArticlePage({ params }: Props) {
 
       {a.related.length > 0 && (
         <section aria-labelledby="related-heading" className="mt-16">
-          <h2 id="related-heading" className="mb-5 border-l-4 border-accent pl-3 text-2xl font-bold tracking-tight">Related articles</h2>
+          <h2 id="related-heading" className="mb-5 section-title text-2xl font-bold tracking-tight">Related articles</h2>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {a.related.map((r) => (
               <ArticleCard key={r.id} article={r} />

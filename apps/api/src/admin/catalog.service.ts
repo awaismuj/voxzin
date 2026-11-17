@@ -122,8 +122,8 @@ export class CatalogService {
     const link = `${env.SITE_URL.replace(/\/+$/, '')}/admin/accept-invite#${token}`;
     const sent = await this.mail.send(
       email,
-      'You are invited to Voxzin',
-      `Hello ${name},\n\nYou have been invited to join Voxzin as an editorial team member.\nSet your password within 24 hours using this link:\n${link}\n\nYou will be asked to set up two-step verification when you sign in.\n`,
+      'You are invited to VoxZin',
+      `Hello ${name},\n\nYou have been invited to join VoxZin as an editorial team member.\nSet your password within 24 hours using this link:\n${link}\n\nYou will be asked to set up two-step verification when you sign in.\n`,
     );
     if (!sent) throw new ServiceUnavailableException('Invitation email could not be sent');
   }
@@ -223,7 +223,7 @@ export class CatalogService {
 
   // ---- settings
   async getSettings() {
-    return (await this.settings.findOne({ key: 'main' }).lean()) ?? { key: 'main', brandName: 'Voxzin', tagline: "The voice of today's trending stories.", contactEmail: '', publishingTargetPerDay: 6, social: {} };
+    return (await this.settings.findOne({ key: 'main' }).lean()) ?? { key: 'main', brandName: 'VoxZin', tagline: "The voice of today's trending stories.", contactEmail: '', publishingTargetPerDay: 6, social: {} };
   }
   async saveSettings(actor: AuthUser, input: z.infer<typeof settingsInput>) {
     await this.settings.updateOne({ key: 'main' }, { $set: input }, { upsert: true });

@@ -24,7 +24,7 @@ export class NewsletterController {
     if (existing?.status !== 'confirmed') {
       await this.subs.updateOne({ email }, { $set: { status: 'pending' } }, { upsert: true });
       const link = `${env.SITE_URL}/newsletter/confirm?email=${encodeURIComponent(email)}&token=${token('confirm', email)}`;
-      await this.mail.send(email, 'Confirm your Voxzin subscription', `Confirm your subscription to the Voxzin Daily Briefing:\n${link}\n\nIf you didn't ask for this, ignore this email.`);
+      await this.mail.send(email, 'Confirm your VoxZin subscription', `Confirm your subscription to the VoxZin Daily Briefing:\n${link}\n\nIf you didn't ask for this, ignore this email.`);
     }
     // Same response whether or not the address is already subscribed (no account enumeration).
     return { message: 'Check your inbox to confirm your subscription.' };

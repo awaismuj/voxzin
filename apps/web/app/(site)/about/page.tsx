@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'About Voxzin',
-  description: 'Learn about Voxzin, our coverage, and the editorial principles behind our global news and insights.',
+  title: 'About VoxZin',
+  description: 'Learn about VoxZin, our coverage, and the editorial principles behind our global news and insights.',
   alternates: { canonical: '/about' },
 };
 
@@ -15,7 +15,7 @@ export default function AboutPage() {
       <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight">The voice of today's trending stories.</h1>
       <div className="article-body mt-8">
         <p>
-          Voxzin is an independent digital publication covering the developments, ideas and conversations shaping people&apos;s lives. We make complex and fast-moving topics easier to understand, with context readers can use.
+          VoxZin is an independent digital publication covering the developments, ideas and conversations shaping people&apos;s lives. We make complex and fast-moving topics easier to understand, with context readers can use.
         </p>
 
         <h2>What we cover</h2>
@@ -39,10 +39,10 @@ export default function AboutPage() {
 
         <h2>Corrections and contact</h2>
         <p>
-          If you spot a factual error or have a question about our work, contact us using the email address shown in the site footer. Voxzin values specific, verifiable feedback and will review it.
+          If you spot a factual error or have a question about our work, contact us using the email address shown in the site footer. VoxZin values specific, verifiable feedback and will review it.
         </p>
 
-        <p><strong>Voxzin — The voice of today's trending stories.</strong></p>
+        <p><strong>VoxZin — The voice of today's trending stories.</strong></p>
       </div>
     </article>
   );
