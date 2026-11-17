@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <p className="text-sm font-semibold uppercase tracking-wide text-accent-ink">Legal</p>
       <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight">Privacy Policy</h1>
-      <p className="mt-3 text-sm text-muted">Effective date: November 13, 2026</p>
+      <p className="mt-3 text-sm text-muted">Effective date: November 17, 2026</p>
       <div className="article-body mt-8">
         <p>
           This notice describes how VoxZin handles information when you visit voxzin.com, subscribe to our newsletter, or use an authorized administration account. It is intended to explain the site&apos;s current practices; the identity of the legal operator and any rights that apply depend on where the operator and reader are located.
@@ -26,6 +26,17 @@ export default function PrivacyPolicyPage() {
           <li><strong>Media and editorial operations:</strong> Images and descriptions submitted by authorized editors may be stored and displayed as part of published content.</li>
           <li><strong>Technical information:</strong> The website host, content-delivery network and security services may process request and device information, such as IP address, browser details and access times, to deliver and protect the site.</li>
         </ul>
+
+        <h2>Editorial sources and published content</h2>
+        <p>
+          Our articles may use information from publicly available or other third-party websites, publishers, public records and organizations. Some stories may discuss identifiable people or events using information from those sources. This editorial source material is different from information we collect about you when you visit the website, subscribe to the newsletter or sign in as an administrator. We do not use article-source information to build visitor profiles.
+        </p>
+        <p>
+          Some published search-interest or trend information may come from Google-provided tools or data, or from other third parties, and may be based on activity or information across their services or websites. These providers operate under their own privacy notices and terms. VoxZin does not receive your personal search history from Google simply because you read our website; any information VoxZin receives about a visitor is described in the sections above.
+        </p>
+        <p>
+          Some images or illustrations may be generated or edited using artificial intelligence, and some media may come from external sources. Such images are part of published editorial content; they are not used by this website to identify or profile visitors. AI-generated or AI-edited visuals may be illustrative and may not depict a real person, place or event accurately.
+        </p>
 
         <h2>Cookies and similar technologies</h2>
         <p>

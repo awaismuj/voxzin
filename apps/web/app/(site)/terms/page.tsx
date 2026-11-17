@@ -13,7 +13,7 @@ export default function TermsPage() {
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <p className="text-sm font-semibold uppercase tracking-wide text-accent-ink">Legal</p>
       <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight">Terms and Conditions</h1>
-      <p className="mt-3 text-sm text-muted">Effective date: November 13, 2026</p>
+      <p className="mt-3 text-sm text-muted">Effective date: November 17, 2026</p>
       <div className="article-body mt-8">
         <p>
           These terms apply when you access voxzin.com. By using the website, you agree to use it lawfully and in accordance with these terms. If you do not agree, please stop using the site.
@@ -24,7 +24,20 @@ export default function TermsPage() {
           VoxZin publishes news, explainers, commentary and general information. Content is provided for informational purposes, not as medical, legal, financial, investment or other professional advice. It may become outdated, and it may not suit your circumstances. Verify important information with primary sources and a qualified professional before relying on it.
         </p>
         <p>
-          We work to make coverage accurate and useful, but do not warrant that every item is complete, current, error-free or available without interruption. Trends and search-interest signals are indicators, not endorsements or guarantees of importance, truth or future outcomes.
+          We work to make coverage accurate and useful, but information can be incomplete, out of date, disputed or mistaken. We cannot guarantee that every article, image, translation, summary, trend indicator or other item is completely accurate or current. Verify important claims with original documents, official sources and other reliable reporting before relying on them. Contact us if you believe something needs correction.
+        </p>
+
+        <h2>Third-party sources and trend information</h2>
+        <p>
+          Our reporting and summaries may draw on information published by other websites, news organizations, public institutions and other third-party sources. We identify or link to sources where available, but a citation does not mean that VoxZin controls or independently confirms every statement on the source site. Sources may change, remove or correct material after we publish.
+        </p>
+        <p>
+          Some search-interest or trend information may be based on data or tools provided by Google or other third parties, and may reflect activity or information gathered across third-party services or websites. These signals can be estimated, sampled, delayed or changed by their providers. They describe interest, not whether a claim is true, how many people hold a view, or what will happen next. Google and other providers are independent of VoxZin; use of their information does not imply their endorsement.
+        </p>
+
+        <h2>Artificial intelligence and images</h2>
+        <p>
+          Some images or illustrations may be generated or edited with artificial intelligence. Unless an image is clearly identified as a photograph or otherwise described, do not assume it is a documentary image of a real person, place or event. AI-generated or AI-edited visuals may contain invented or inaccurate details and are illustrative, not evidence that an event happened exactly as shown. We may also use images from third-party sources, subject to the applicable rights and attribution.
         </p>
 
         <h2>Intellectual property</h2>
