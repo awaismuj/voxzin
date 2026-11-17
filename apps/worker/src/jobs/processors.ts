@@ -2,7 +2,7 @@ import type { Job } from 'bullmq';
 import type { Logger } from 'pino';
 import mongoose from 'mongoose';
 import { MODELS } from '@voxzin/database';
-import { slugify } from '@voxzin/shared';
+import { slugify, submitToIndexNow } from '@voxzin/shared';
 import { env } from '../config';
 import { ApprovedRssProvider, GoogleTrendsRssProvider } from '../providers/rss';
 import type { TrendProvider } from '../providers/types';
@@ -14,11 +14,24 @@ const EXPIRE_AFTER_MS = 7 * 24 * 3_600_000;
 
 export async function publishScheduled(log: Logger) {
   const now = new Date();
+  const due = await Article.find({ status: 'scheduled', scheduledAt: { $lte: now } }).select('slug').lean<{ _id: unknown; slug: string }[]>();
+  if (due.length === 0) return;
   const res = await Article.updateMany(
-    { status: 'scheduled', scheduledAt: { $lte: now } },
+    { _id: { $in: due.map((a) => a._id) }, status: 'scheduled' },
     { $set: { status: 'published', publishedAt: now } },
   );
   if (res.modifiedCount > 0) log.info({ published: res.modifiedCount }, 'scheduled articles published');
+
+  // Announce the new pages to search engines (Bing, Yandex, ...) so they are crawled within minutes.
+  if (res.modifiedCount > 0 && env.INDEXNOW_KEY && env.NODE_ENV === 'production') {
+    const site = env.SITE_URL.replace(/\/+$/, '');
+    const ok = await submitToIndexNow({
+      siteUrl: site,
+      key: env.INDEXNOW_KEY,
+      urls: [...due.map((a) => `${site}/articles/${a.slug}`), `${site}/`, `${site}/latest`],
+    });
+    if (!ok) log.warn('IndexNow submission was not accepted');
+  }
 }
 
 export async function discoverTrends(log: Logger) {

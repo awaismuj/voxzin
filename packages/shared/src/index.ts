@@ -1,3 +1,4 @@
+export * from './indexnow';
 import { z } from 'zod';
 
 export const ARTICLE_STATUSES = [

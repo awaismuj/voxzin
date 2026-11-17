@@ -35,7 +35,11 @@ const config: NextConfig = {
   },
   // Browser calls /api/v1/* on our own origin, so session cookies stay first-party and CSP can stay connect-src 'self'.
   async rewrites() {
-    return [{ source: '/api/v1/:path*', destination: `${API_URL}/:path*` }];
+    return [
+      { source: '/api/v1/:path*', destination: `${API_URL}/:path*` },
+      // IndexNow key file: https://<site>/<key>.txt (the key is 32-64 hex characters, so it cannot clash with real pages).
+      { source: '/:key([a-f0-9]{32,64}).txt', destination: '/indexnow-key/:key' },
+    ];
   },
   async headers() {
     return [
