@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import type { MediaAssetDto } from '@voxzin/shared';
 import { adminFetch, uploadImage } from '@/lib/admin-client';
 import { btn, btnGhost, input, label } from './ui';
@@ -116,7 +117,7 @@ export function MediaPicker({
             </form>
 
             <form onSubmit={upload} className="mt-4 grid gap-3 rounded-lg border border-line p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
-              <div><label className={label} htmlFor="picker-file">Upload image</label><input ref={fileRef} id="picker-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required className="block w-full text-sm" /></div>
+              <div><label className={label} htmlFor="picker-file">Upload image</label><input ref={fileRef} id="picker-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required className="block w-full text-sm" /><p className="mt-1 text-xs text-muted">Still images are optimized automatically for faster loading.</p></div>
               <div><label className={label} htmlFor="picker-alt">Image description (alt text)</label><input id="picker-alt" className={input} maxLength={300} required value={alt} onChange={(e) => setAlt(e.target.value)} /></div>
               <button disabled={uploading} className={btn}>{uploading ? 'Uploading…' : 'Upload and use'}</button>
             </form>
@@ -129,7 +130,9 @@ export function MediaPicker({
                 {items.map((asset) => (
                   <li key={asset.filename} className="overflow-hidden rounded-lg border border-line">
                     <button type="button" className="block w-full text-left hover:bg-bg" onClick={() => void choose(asset)}>
-                      <img src={asset.url} alt={asset.alt} className="aspect-video w-full bg-bg object-cover" />
+                      <div className="relative aspect-video w-full bg-bg">
+                        <Image src={asset.url} alt={asset.alt} fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
+                      </div>
                       <span className="block truncate px-3 pt-2 text-sm font-medium">{asset.originalName}</span>
                       <span className="block truncate px-3 pb-3 text-xs text-muted">{asset.alt || 'Alt text needed'} · {Math.ceil(asset.size / 1024)} KB</span>
                     </button>

@@ -5,17 +5,17 @@ import { StoryMeta } from './story-meta';
 
 export function Hero({ lead, side }: { lead: ArticleSummary; side: ArticleSummary[] }) {
   return (
-    <section aria-label="Top stories" className="mx-auto grid max-w-7xl gap-6 px-4 pt-6 sm:px-6 lg:grid-cols-[1.9fr_1fr]">
+    <section aria-label="Top stories" className="mx-auto grid max-w-7xl gap-5 px-4 pt-6 sm:px-6 lg:grid-cols-[1.9fr_1fr]">
       <Link
         href={`/articles/${lead.slug}`}
-        className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-sm transition-shadow hover:shadow-lg"
+        className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-xl"
       >
         <StoryFrame image={lead.image} sizes="(min-width: 1024px) 62vw, 100vw" mode="natural" priority />
-        <div className="flex flex-1 flex-col p-5 sm:p-7">
+        <div className="flex flex-1 flex-col p-5 sm:p-7 lg:p-8">
           <span className="w-fit rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent-ink">
             {lead.category.name}
           </span>
-          <h1 className="mt-3 font-serif text-2xl font-bold leading-tight tracking-tight group-hover:text-accent-ink sm:text-[2rem]">
+          <h1 className="mt-3 font-serif text-2xl font-bold leading-tight tracking-tight group-hover:text-accent-ink sm:text-3xl lg:text-[2rem]">
             {lead.title}
           </h1>
           <p className="mt-3 line-clamp-3 max-w-2xl text-base leading-relaxed text-muted">{lead.excerpt}</p>

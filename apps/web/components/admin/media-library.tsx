@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import type { MediaAssetDto } from '@voxzin/shared';
 import { adminFetch, uploadImage } from '@/lib/admin-client';
 import { btn, btnGhost, card, input, label } from './ui';
@@ -91,7 +92,7 @@ export function MediaLibrary({ initial }: { initial: MediaPage }) {
     <div className="space-y-6">
       <section className={card}>
         <h2 className="font-semibold">Upload a new image</h2>
-        <p className="mt-1 text-sm text-muted">PNG, JPEG, WebP or GIF · maximum 5 MB. Add accurate alt text before upload.</p>
+        <p className="mt-1 text-sm text-muted">PNG, JPEG, WebP or GIF · maximum 5 MB. Still images are resized and optimized to WebP for faster loading.</p>
         <form onSubmit={upload} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
           <div><label className={label} htmlFor="media-file">Image file</label><input ref={fileRef} id="media-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required className="block w-full text-sm" /></div>
           <div><label className={label} htmlFor="media-alt">Image description (alt text)</label><input id="media-alt" className={input} maxLength={300} required value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Describe what the image shows" /></div>
@@ -115,7 +116,9 @@ export function MediaLibrary({ initial }: { initial: MediaPage }) {
         <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((asset) => (
             <li key={asset.filename} className="overflow-hidden rounded-lg border border-line bg-surface">
-              <img src={asset.url} alt={asset.alt} className="aspect-video w-full bg-bg object-cover" />
+              <div className="relative aspect-video w-full bg-bg">
+                <Image src={asset.url} alt={asset.alt} fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
+              </div>
               <div className="space-y-3 p-4">
                 <div>
                   <p className="truncate text-sm font-semibold" title={asset.originalName}>{asset.originalName}</p>

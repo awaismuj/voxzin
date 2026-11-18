@@ -10,6 +10,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { Response } from 'express';
 import { memoryStorage } from 'multer';
+import sharp from 'sharp';
 import { mediaListQuery, mediaMetadataInput } from '@voxzin/shared';
 import { z } from 'zod';
 import { AuditService } from '../auth/audit.service';
@@ -80,19 +81,35 @@ export class MediaController {
     if (alt !== undefined && (typeof alt !== 'string' || alt.trim().length > 300)) {
       throw new BadRequestException('Image description must be 300 characters or fewer');
     }
-    const filename = `${randomBytes(16).toString('hex')}.${type.ext}`;
+    let content = file.buffer;
+    let ext = type.ext;
+    let mime = type.mime;
+    if (type.ext !== 'gif') {
+      try {
+        content = await sharp(file.buffer, { limitInputPixels: 40_000_000 })
+          .rotate()
+          .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 80, effort: 4 })
+          .toBuffer();
+        ext = 'webp';
+        mime = 'image/webp';
+      } catch {
+        throw new BadRequestException('Image could not be processed. Choose a valid PNG, JPEG or WebP image.');
+      }
+    }
+    const filename = `${randomBytes(16).toString('hex')}.${ext}`;
     const dir = resolve(env.UPLOAD_DIR);
     await mkdir(dir, { recursive: true });
-    await writeFile(resolve(dir, filename), file.buffer, { flag: 'wx' });
+    await writeFile(resolve(dir, filename), content, { flag: 'wx' });
     await this.media.create({
       filename,
       originalName: file.originalname.slice(0, 200),
-      mime: type.mime,
-      size: file.size,
+      mime,
+      size: content.length,
       alt: alt?.trim() ?? '',
       uploadedBy: req.auth.user._id,
     });
-    await this.audit.log(req.auth.user._id.toString(), 'media.upload', { type: 'media', id: filename }, { size: file.size }, req.ip);
+    await this.audit.log(req.auth.user._id.toString(), 'media.upload', { type: 'media', id: filename }, { size: content.length }, req.ip);
     return { url: `/api/v1/media/${filename}` };
   }
 

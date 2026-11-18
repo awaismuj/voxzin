@@ -15,15 +15,15 @@ export function Nav({ items }: { items: { href: string; label: string }[] }) {
 
   return (
     <>
-      <nav aria-label="Main" className="hidden xl:block">
-        <ul className="flex items-center gap-1">
+      <nav aria-label="Main" className="hidden min-w-0 flex-1 xl:block">
+        <ul className="flex items-center gap-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {items.map((item) => (
-            <li key={item.href}>
+            <li key={item.href} className="shrink-0">
               <Link
                 href={item.href}
                 aria-current={isActive(item.href) ? 'page' : undefined}
                 className={cn(
-                  'block border-b-2 px-3 py-5 text-sm font-medium text-white/80 hover:text-white',
+                  'block border-b-2 px-2.5 py-5 text-sm font-medium text-white/80 hover:text-white',
                   isActive(item.href) ? 'border-[#ff3d85] text-white' : 'border-transparent',
                 )}
               >

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useState } from 'react';
 import { canTransition, TRANSITIONS, type ArticleStatus, type Role } from '@voxzin/shared';
 import { adminFetch } from '@/lib/admin-client';
@@ -156,7 +157,9 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
             <p className="mt-1 text-xs text-muted">This lead image appears above the story. Add images inside the story from the body editor toolbar.</p>
             {f.featuredImage?.url && (
               <>
-                <img src={f.featuredImage.url} alt="" className="mt-2 aspect-video w-full rounded object-cover" />
+                <div className="relative mt-2 aspect-video w-full overflow-hidden rounded">
+                  <Image src={f.featuredImage.url} alt="" fill sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" />
+                </div>
                 <input aria-label="Image description" placeholder="Describe the image" className={`${input} mt-2`} value={f.featuredImage.alt} onChange={(e) => set('featuredImage', { url: f.featuredImage!.url, alt: e.target.value })} />
               </>
             )}

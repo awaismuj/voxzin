@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Briefcase, Clapperboard, Coffee, Cpu, FlaskConical, Globe, MessagesSquare, Sparkles, Trophy, type LucideIcon } from 'lucide-react';
 import { getCategories } from '@/lib/api';
+import { uniqueCategories } from '@/lib/nav';
 
 const ICONS: Record<string, LucideIcon> = {
   technology: Cpu,
@@ -19,7 +20,7 @@ export async function CategoryBar() {
   return (
     <nav aria-label="Browse sections" className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
       <ul className="flex gap-2 overflow-x-auto rounded-xl bg-navy p-2">
-        {categories.map((c) => {
+        {uniqueCategories(categories).map((c) => {
           const Icon = ICONS[c.slug] ?? Globe;
           return (
             <li key={c.slug} className="shrink-0 grow">

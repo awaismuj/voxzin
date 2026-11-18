@@ -1,17 +1,23 @@
 import type { CategoryDto } from '@voxzin/shared';
 
-export const buildNavItems = (categories: CategoryDto[]) => {
-  const seen = new Set<string>();
-  const unique = categories.filter((c) => {
-    const key = c.slug.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
+export function uniqueCategories(categories: CategoryDto[]) {
+  const slugs = new Set<string>();
+  const names = new Set<string>();
+  return categories.filter((category) => {
+    const slug = category.slug.trim().toLowerCase();
+    const name = category.name.trim().toLowerCase();
+    if (slugs.has(slug) || names.has(name)) return false;
+    slugs.add(slug);
+    names.add(name);
     return true;
   });
+}
+
+export const buildNavItems = (categories: CategoryDto[]) => {
   return [
     { href: '/', label: 'Home' },
     { href: '/trending', label: 'Trending' },
     { href: '/latest', label: 'Latest' },
-    ...unique.map((c) => ({ href: `/${c.slug}`, label: c.name })),
+    ...uniqueCategories(categories).map((c) => ({ href: `/${c.slug}`, label: c.name })),
   ];
 };

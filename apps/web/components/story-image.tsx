@@ -17,7 +17,7 @@ export function StoryImage({
   // Images uploaded through the CMS are served by our own API via /api/v1/media/*.
   if (!image) return <div className="absolute inset-0 bg-linear-to-br from-[#101c32] to-[#1d4e7a]" aria-hidden />;
   if (/^\/api\/v1\/media\/[a-f0-9]{32}\.(png|jpg|webp|gif)$/.test(image.url)) {
-    return <SafeStoryImage src={image.url} alt={image.alt} sizes={sizes} priority={priority} remote={false} fit={fit} />;
+    return <SafeStoryImage src={image.url} alt={image.alt} sizes={sizes} priority={priority} fit={fit} />;
   }
   if (image && host) {
     try {
@@ -30,5 +30,5 @@ export function StoryImage({
   if (!allowed) {
     return <div className="absolute inset-0 bg-linear-to-br from-[#101c32] to-[#1d4e7a]" aria-hidden />;
   }
-  return <SafeStoryImage src={image.url} alt={image.alt} sizes={sizes} priority={priority} remote fit={fit} />;
+  return <SafeStoryImage src={image.url} alt={image.alt} sizes={sizes} priority={priority} fit={fit} />;
 }

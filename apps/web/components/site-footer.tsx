@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getCategories, getPublicSettings } from '@/lib/api';
+import { uniqueCategories } from '@/lib/nav';
 import { BrandLogo } from './brand-logo';
 import { NewsletterForm } from './newsletter-form';
 
@@ -20,7 +21,7 @@ export async function SiteFooter() {
           <ul className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
             <li><Link href="/trending" className="hover:text-white">Trending</Link></li>
             <li><Link href="/latest" className="hover:text-white">Latest</Link></li>
-            {categories.map((c) => (
+            {uniqueCategories(categories).map((c) => (
               <li key={c.slug}>
                 <Link href={`/${c.slug}`} className="hover:text-white">{c.name}</Link>
               </li>
