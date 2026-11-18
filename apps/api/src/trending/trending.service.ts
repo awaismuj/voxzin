@@ -30,24 +30,30 @@ export class TrendingService implements OnModuleInit {
     await Promise.all(DEFAULT_TREND_COUNTRIES.map((country) =>
       this.countries.updateOne({ code: country.code }, { $setOnInsert: country }, { upsert: true }),
     ));
+    await this.trends.updateMany({ status: 'pending' }, { $set: { status: 'approved' } });
   }
 
   listCountries() {
     return this.countries.find({ isActive: true }).select('code name order').sort({ order: 1, name: 1 }).lean();
   }
 
-  // ---- public: only admin-approved topics are ever returned
+  // Public topics are shared across regions and automatically approved on discovery.
   async list(q: { country: string; category?: string; limit: number }) {
     if (!(await this.countries.exists({ code: q.country, isActive: true }))) return [];
-    const filter: Record<string, unknown> = { status: 'approved', country: q.country };
+    const filter: Record<string, unknown> = { status: 'approved' };
     if (q.category) filter.category = q.category;
     const rows = await this.trends
       .find(filter)
       .populate({ path: 'relatedArticles', match: { status: 'published' }, select: 'slug title' })
       .sort({ isFeatured: -1, lastUpdatedAt: -1 })
-      .limit(q.limit)
+      .limit(1000)
       .lean<Row[]>();
-    return rows.map(toDto);
+    const unique = new Map<string, TrendTopicDto>();
+    for (const row of rows) {
+      if (!unique.has(row.slug)) unique.set(row.slug, toDto(row));
+      if (unique.size >= q.limit) break;
+    }
+    return [...unique.values()];
   }
 
   async getBySlug(slug: string, country?: string) {
@@ -55,7 +61,7 @@ export class TrendingService implements OnModuleInit {
       .map((item) => item.code);
     if (country && !activeCountryCodes.includes(country)) throw new NotFoundException('Topic not found');
     const row = await this.trends
-      .findOne({ slug, status: 'approved', country: country ?? { $in: activeCountryCodes } })
+      .findOne({ slug, status: 'approved', country: { $in: activeCountryCodes } })
       .populate({ path: 'relatedArticles', match: { status: 'published' }, select: 'slug title' })
       .sort({ lastUpdatedAt: -1 })
       .lean<Row>();
@@ -85,7 +91,7 @@ export class TrendingService implements OnModuleInit {
     }
     try {
       const doc = await this.trends.create({
-        ...input, slug: slugify(input.title), source: 'manual', status: 'pending', verificationStatus: 'unverified',
+        ...input, slug: slugify(input.title), source: 'manual', status: 'approved', verificationStatus: 'unverified',
         discoveredAt: new Date(), lastUpdatedAt: new Date(),
       });
       await this.audit.log(actor._id.toString(), 'trend.create', { type: 'trend', id: doc._id.toString() });

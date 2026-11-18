@@ -53,14 +53,14 @@ export async function discoverTrends(log: Logger) {
         const now = new Date();
         for (const t of found) {
           const slug = slugify(t.title, 100);
-          // Topics land as "pending": nothing is public until an editor adds research and approves it.
+          // Topics are published on discovery; keep the originating country for transparency.
           await TrendingTopic.updateOne(
             { slug, country: t.country },
             {
               $set: { lastUpdatedAt: now, ...(t.trendMetric ? { trendMetric: t.trendMetric } : {}) },
               $setOnInsert: {
                 title: t.title, source: t.source, sourceUrl: t.sourceUrl, sourcePublishedAt: t.sourcePublishedAt,
-                discoveredAt: now, status: 'pending', verificationStatus: 'unverified', category: 'general',
+                discoveredAt: now, status: 'approved', verificationStatus: 'unverified', category: 'general',
               },
             },
             { upsert: true },

@@ -31,6 +31,7 @@ export function TrendingManager({ items, status, country, countries }: { items: 
 
   return (
     <div className="space-y-6">
+      <p className="text-sm text-muted">Discovered topics are automatically published across all regions. Review sources, add context, feature useful topics, or reject unsuitable ones.</p>
       <form className="flex flex-wrap gap-2" role="search">
         <select name="status" defaultValue={status} aria-label="Status" className="rounded-md border border-line bg-surface px-3 py-2 text-sm">
           <option value="">All</option>{['pending', 'approved', 'rejected', 'expired'].map((s) => <option key={s} value={s}>{s}</option>)}
@@ -53,7 +54,6 @@ export function TrendingManager({ items, status, country, countries }: { items: 
               </div>
               <div className="flex flex-wrap gap-2">
                 <button className={btnGhost} onClick={() => { setOpen(open === t.id ? null : t.id); setDraft({ description: t.description, keywords: t.keywords.join(', ') }); }}>Research</button>
-                {t.status !== 'approved' && <button className={btnGhost} onClick={() => patch(t.id, { status: 'approved', verificationStatus: 'verified' })}>Approve</button>}
                 {t.status !== 'rejected' && <button className={btnGhost} onClick={() => patch(t.id, { status: 'rejected' })}>Reject</button>}
                 {t.status === 'approved' && <button className={btnGhost} onClick={() => patch(t.id, { isFeatured: !t.isFeatured })}>{t.isFeatured ? 'Unfeature' : 'Feature'}</button>}
                 {t.status !== 'expired' && <button className={btnGhost} onClick={() => patch(t.id, { status: 'expired' })}>Expire</button>}

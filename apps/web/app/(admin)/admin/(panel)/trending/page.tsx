@@ -4,7 +4,7 @@ import { adminGet, requireRole } from '@/lib/admin-server';
 export default async function TrendingAdmin({ searchParams }: { searchParams: Promise<{ status?: string; country?: string }> }) {
   await requireRole('super_admin', 'admin', 'editor');
   const sp = await searchParams;
-  const status = ['pending', 'approved', 'rejected', 'expired'].includes(sp.status ?? '') ? sp.status! : 'pending';
+  const status = ['pending', 'approved', 'rejected', 'expired'].includes(sp.status ?? '') ? sp.status! : '';
   const country = /^[A-Z]{2}$/.test(sp.country ?? '') ? sp.country! : '';
   const [data, countries] = await Promise.all([
     adminGet<{ items: React.ComponentProps<typeof TrendingManager>['items'] }>(`/admin/trending?${new URLSearchParams({ ...(status ? { status } : {}), ...(country ? { country } : {}) })}`),
