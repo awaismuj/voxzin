@@ -8,6 +8,13 @@ export const metadata: Metadata = {
   title: { default: 'VoxZin | Global News, Technology & Trending Stories', template: '%s | VoxZin' },
   description: 'Stay informed with carefully sourced global news, technology, AI, business, science, culture and practical insights from VoxZin.',
   applicationName: 'VoxZin',
+  category: 'news',
+  // Lets Google show large image previews and full snippets (Search, Discover, News) and keeps pages indexable.
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
+  },
   openGraph: {
     type: 'website',
     siteName: 'VoxZin',

@@ -6,6 +6,7 @@ import {
 } from '@voxzin/shared';
 import { AuditService } from '../auth/audit.service';
 import { sanitizeArticleHtml } from '../common/sanitize';
+import { IndexNowService } from '../seo/indexnow.service';
 import { escapeRegex, type AuthUser, type M } from '../common/types';
 
 interface Row {
@@ -30,6 +31,7 @@ export class AdminArticlesService {
     @InjectModel('Article') private readonly articles: M,
     @InjectModel('Category') private readonly categories: M,
     private readonly audit: AuditService,
+    private readonly indexNow: IndexNowService,
   ) {}
 
   private scope(user: AuthUser) {
@@ -138,6 +140,7 @@ export class AdminArticlesService {
     if (input.authorId && user.role === 'author' && input.authorId !== user.authorId?.toString()) throw new ForbiddenException();
     await this.articles.updateOne({ _id: id }, { $set: { ...this.fields(input, user), updatedBy: user._id } });
     await this.audit.log(user._id.toString(), 'article.update', { type: 'article', id }, { fields: Object.keys(input) }, ip);
+    if (row.status === 'published') this.indexNow.notify(`/articles/${row.slug}`);
     return { id, warnings: input.title ? await this.findDuplicates(input.title, id) : [] };
   }
 
@@ -155,12 +158,14 @@ export class AdminArticlesService {
     if (to === 'published' && !row.publishedAt) set.publishedAt = new Date();
     await this.articles.updateOne({ _id: id }, { $set: set });
     await this.audit.log(user._id.toString(), `article.${to}`, { type: 'article', id }, { from: row.status }, ip);
+    if (to === 'published') this.indexNow.notify(`/articles/${row.slug}`, '/', '/latest');
     return { id, status: to };
   }
 
   async remove(user: AuthUser, id: string, ip?: string) {
-    await this.owned(user, id);
+    const row = await this.owned(user, id);
     await this.articles.deleteOne({ _id: id });
+    if (row.status === 'published') this.indexNow.notify(`/articles/${row.slug}`);
     await this.audit.log(user._id.toString(), 'article.delete', { type: 'article', id }, {}, ip);
   }
 }

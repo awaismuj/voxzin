@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ArticleList } from '@/components/article-list';
 import { getArticles, getCategories } from '@/lib/api';
 import { parsePage } from '@/lib/page';
+import { SITE_NAME, SITE_URL } from '@/lib/site';
 
 type Props = {
   params: Promise<{ category: string }>;
@@ -23,6 +24,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     title: cat.name,
     description: cat.description,
     alternates: { canonical: page > 1 ? `/${cat.slug}/page/${page}` : `/${cat.slug}` },
+    openGraph: { type: 'website', siteName: SITE_NAME, url: `${SITE_URL}/${cat.slug}`, title: `${cat.name} | ${SITE_NAME}`, description: cat.description },
   };
 }
 

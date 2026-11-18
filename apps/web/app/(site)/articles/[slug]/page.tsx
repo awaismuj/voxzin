@@ -5,7 +5,7 @@ import { ArticleCard } from '@/components/article-card';
 import { ArticleBody } from '@/components/article-body';
 import { StoryFrame } from '@/components/story-frame';
 import { ApiError, getArticle } from '@/lib/api';
-import { SITE_URL } from '@/lib/site';
+import { absoluteUrl, SITE_NAME, SITE_URL } from '@/lib/site';
 import { formatDate } from '@/lib/utils';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -22,17 +22,30 @@ async function load(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const a = await load((await params).slug);
+  const url = `${SITE_URL}/articles/${a.slug}`;
+  const image = a.image ? absoluteUrl(a.image.url) : undefined;
   return {
     title: a.seo.title,
     description: a.seo.description,
+    authors: [{ name: a.author.name }],
     alternates: { canonical: a.seo.canonicalUrl ?? `/articles/${a.slug}` },
     openGraph: {
       type: 'article',
+      url,
+      siteName: SITE_NAME,
       title: a.seo.title,
       description: a.seo.description,
       publishedTime: a.publishedAt,
       modifiedTime: a.updatedAt,
-      images: a.image ? [{ url: a.image.url, alt: a.image.alt }] : undefined,
+      authors: [a.author.name],
+      section: a.category.name,
+      images: image ? [{ url: image, alt: a.image?.alt }] : undefined,
+    },
+    twitter: {
+      card: image ? 'summary_large_image' : 'summary',
+      title: a.seo.title,
+      description: a.seo.description,
+      images: image ? [image] : undefined,
     },
   };
 }
@@ -41,26 +54,37 @@ export default async function ArticlePage({ params }: Props) {
   const a = await load((await params).slug);
   const updated = formatDate(a.updatedAt) !== formatDate(a.publishedAt);
 
+  const url = `${SITE_URL}/articles/${a.slug}`;
+  const image = a.image ? absoluteUrl(a.image.url) : undefined;
+  const words = a.content.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
+
   const ld = {
     '@context': 'https://schema.org',
     '@graph': [
       {
-        '@type': 'Article',
-        headline: a.title,
+        '@type': 'NewsArticle',
+        '@id': `${url}#article`,
+        headline: a.title.slice(0, 110),
         description: a.seo.description,
-        image: a.image ? [a.image.url] : undefined,
+        image: image ? [image] : undefined,
+        thumbnailUrl: image,
         datePublished: a.publishedAt,
         dateModified: a.updatedAt,
         author: { '@type': 'Person', name: a.author.name },
-        publisher: { '@type': 'Organization', name: 'VoxZin', url: SITE_URL },
-        mainEntityOfPage: `${SITE_URL}/articles/${a.slug}`,
+        publisher: { '@id': `${SITE_URL}/#organization` },
+        mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+        articleSection: a.category.name,
+        inLanguage: 'en',
+        isAccessibleForFree: true,
+        wordCount: words,
+        citation: a.sources.map((src) => ({ '@type': 'CreativeWork', name: src.title, url: src.url })),
       },
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
           { '@type': 'ListItem', position: 2, name: a.category.name, item: `${SITE_URL}/${a.category.slug}` },
-          { '@type': 'ListItem', position: 3, name: a.title, item: `${SITE_URL}/articles/${a.slug}` },
+          { '@type': 'ListItem', position: 3, name: a.title, item: url },
         ],
       },
     ],

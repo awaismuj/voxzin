@@ -12,6 +12,7 @@ import { AiController } from './ai/ai.controller';
 import { AiService } from './ai/ai.service';
 import { ArticlesController } from './articles/articles.controller';
 import { ArticlesService } from './articles/articles.service';
+import { IndexNowService } from './seo/indexnow.service';
 import { AdminBootstrapService } from './auth/admin-bootstrap.service';
 import { AuditService } from './auth/audit.service';
 import { AuthController } from './auth/auth.controller';
@@ -40,7 +41,7 @@ import { TrendingService } from './trending/trending.service';
   ],
   providers: [
     ArticlesService, CategoriesService, AuthService, AuditService, AdminArticlesService, CatalogService,
-    AiService, TrendingService, MailService, SessionGuard, RolesGuard, AdminBootstrapService,
+    AiService, TrendingService, MailService, SessionGuard, RolesGuard, AdminBootstrapService, IndexNowService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: OriginGuard },
   ],

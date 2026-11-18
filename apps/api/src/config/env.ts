@@ -31,6 +31,9 @@ const schema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().trim().min(1).optional(),
   MAIL_FROM: z.string().default('VoxZin <no-reply@voxzin.com>'),
+  // IndexNow key (hex, 32-64 chars; make one with: openssl rand -hex 16). When set, search engines are told about new and
+  // changed articles right away. The site serves the key file at /<key>.txt.
+  INDEXNOW_KEY: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().regex(/^[a-f0-9]{32,64}$/, 'INDEXNOW_KEY must be 32-64 lowercase hex characters').optional()),
   // Admin sign-in managed from the environment (see auth/admin-bootstrap.service.ts). Blank values count as unset.
   ADMIN_EMAIL: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().trim().email().optional()),
   ADMIN_PASSWORD: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
