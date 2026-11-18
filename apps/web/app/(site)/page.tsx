@@ -31,13 +31,24 @@ export default async function HomePage() {
   return (
     <>
       <Ticker items={feed.breaking} />
-      <Hero lead={feed.hero} side={feed.topStories} />
+      <Hero lead={feed.hero} />
       <CategoryBar />
+      {feed.topStories.length > 0 && (
+        <section aria-labelledby="trending-stories-heading" className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 id="trending-stories-heading" className="section-title text-2xl font-bold tracking-tight">Trending stories</h2>
+            <Link href="/latest" className="text-sm font-medium text-accent-ink hover:underline">All latest</Link>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {feed.topStories.map((article) => <ArticleCard key={article.id} article={article} />)}
+          </div>
+        </section>
+      )}
       {feed.trending.length > 0 && (
-        <section aria-labelledby="trending-heading" className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
+        <section aria-labelledby="trending-topics-heading" className="mx-auto mt-10 max-w-7xl px-4 sm:px-6">
           <div className="mb-3 flex items-baseline justify-between">
-            <h2 id="trending-heading" className="section-title text-2xl font-bold tracking-tight">Trending now</h2>
-            <Link href="/trending" className="text-sm font-medium text-accent-ink hover:underline">All trends</Link>
+            <h2 id="trending-topics-heading" className="section-title text-2xl font-bold tracking-tight">Trending topics</h2>
+            <Link href="/trending" className="text-sm font-medium text-accent-ink hover:underline">All topics</Link>
           </div>
           <ul className="flex flex-wrap gap-2">
             {feed.trending.map((t) => (

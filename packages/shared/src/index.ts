@@ -303,13 +303,6 @@ export const trendAdminQuery = z.object({
   country: countryCodeSchema.optional(),
   page: z.coerce.number().int().min(1).max(500).default(1),
 });
-export const trendCreateInput = z.object({
-  title: z.string().trim().min(2).max(200),
-  description: z.string().trim().max(5000).default(''),
-  category: z.string().trim().max(40).default('general'),
-  country: countryCodeSchema.default('WW'),
-  sourceUrl: httpsUrl.optional(),
-});
 export const trendPatchInput = z.object({
   title: z.string().trim().min(2).max(200).optional(),
   description: z.string().trim().max(5000).optional(),

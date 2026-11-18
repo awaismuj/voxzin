@@ -1,6 +1,6 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { DEFAULT_TREND_COUNTRIES, slugify, type TrendTopicDto } from '@voxzin/shared';
+import { DEFAULT_TREND_COUNTRIES, type TrendTopicDto } from '@voxzin/shared';
 import { AuditService } from '../auth/audit.service';
 import type { AuthUser, M } from '../common/types';
 
@@ -83,23 +83,6 @@ export class TrendingService implements OnModuleInit {
       items: rows.map((r) => ({ ...toDto(r), status: r.status, verificationStatus: r.verificationStatus })),
       page: q.page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)),
     };
-  }
-
-  async create(actor: AuthUser, input: { title: string; description: string; category: string; country: string; sourceUrl?: string }) {
-    if (!(await this.countries.exists({ code: input.country, isActive: true }))) {
-      throw new BadRequestException('Choose an active country');
-    }
-    try {
-      const doc = await this.trends.create({
-        ...input, slug: slugify(input.title), source: 'manual', status: 'approved', verificationStatus: 'unverified',
-        discoveredAt: new Date(), lastUpdatedAt: new Date(),
-      });
-      await this.audit.log(actor._id.toString(), 'trend.create', { type: 'trend', id: doc._id.toString() });
-      return { id: doc._id.toString() };
-    } catch (e) {
-      if ((e as { code?: number }).code === 11000) throw new ConflictException('That topic already exists for this country');
-      throw e;
-    }
   }
 
   async patch(actor: AuthUser, id: string, input: Record<string, unknown>, ip?: string) {

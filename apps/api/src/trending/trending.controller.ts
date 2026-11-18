@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Header, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Patch, Query, Req, UseGuards } from '@nestjs/common';
 import {
-  countryCodeSchema, objectIdSchema, slugSchema, trendAdminQuery, trendCreateInput, trendListQuery, trendPatchInput,
+  countryCodeSchema, objectIdSchema, slugSchema, trendAdminQuery, trendListQuery, trendPatchInput,
 } from '@voxzin/shared';
 import { z } from 'zod';
 import { Roles, RolesGuard, SessionGuard } from '../auth/guards';
@@ -36,10 +36,6 @@ export class TrendingAdminController {
   @Get()
   list(@Query(new ZodPipe(trendAdminQuery)) q: z.infer<typeof trendAdminQuery>) {
     return this.s.adminList(q);
-  }
-  @Post()
-  create(@Req() r: AuthedRequest, @Body(new ZodPipe(trendCreateInput)) b: z.infer<typeof trendCreateInput>) {
-    return this.s.create(r.auth.user, b);
   }
   @Patch(':id')
   patch(@Req() r: AuthedRequest, @Param('id', new ZodPipe(objectIdSchema)) id: string, @Body(new ZodPipe(trendPatchInput)) b: z.infer<typeof trendPatchInput>) {

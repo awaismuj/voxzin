@@ -19,16 +19,6 @@ export function TrendingManager({ items, status, country, countries }: { items: 
     setError('');
     try { await adminFetch(`/admin/trending/${id}`, { method: 'PATCH', body }); router.refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Update failed'); }
   }
-  async function addManual(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    setError('');
-    try {
-      await adminFetch('/admin/trending', { method: 'POST', body: { title: f.get('title'), description: f.get('description') || '', country: f.get('country'), sourceUrl: f.get('sourceUrl') || undefined } });
-      (e.target as HTMLFormElement).reset(); router.refresh();
-    } catch (err) { setError(err instanceof Error ? err.message : 'Could not add topic'); }
-  }
-
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted">Discovered topics are automatically published across all regions. Review sources, add context, feature useful topics, or reject unsuitable ones.</p>
@@ -66,20 +56,12 @@ export function TrendingManager({ items, status, country, countries }: { items: 
                 <div><label className={label} htmlFor={`k-${t.id}`}>Related keywords (comma separated)</label>
                   <input id={`k-${t.id}`} className={input} value={draft.keywords} onChange={(e) => setDraft({ ...draft, keywords: e.target.value })} /></div>
                 <button className={btn} onClick={() => patch(t.id, { description: draft.description, keywords: draft.keywords.split(',').map((k) => k.trim()).filter(Boolean) })}>Save research</button>
-                <p className="text-xs text-muted">A topic needs a written explanation before it can be approved.</p>
+                <p className="text-xs text-muted">Context and keywords help readers understand the topic; it is already visible publicly.</p>
               </div>
             )}
           </li>
         ))}
       </ul>
-      <form onSubmit={addManual} className={`${card} grid max-w-xl gap-3`}>
-        <h2 className="font-semibold">Add a topic manually</h2>
-        <div><label className={label} htmlFor="mt">Topic</label><input id="mt" name="title" required minLength={2} className={input} /></div>
-        <div><label className={label} htmlFor="mc">Country</label><select id="mc" name="country" className={input}>{countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select></div>
-        <div><label className={label} htmlFor="mu">Source link (https)</label><input id="mu" name="sourceUrl" type="url" className={input} /></div>
-        <div><label className={label} htmlFor="md">Explanation</label><textarea id="md" name="description" rows={3} className={input} /></div>
-        <button className={btn}>Add topic</button>
-      </form>
     </div>
   );
 }
