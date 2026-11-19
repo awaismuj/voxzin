@@ -78,17 +78,49 @@ export class ArticlesService {
         .lean<{ slug: string; title: string }[]>(),
       this.trends
         .find({ status: 'approved' })
-        .select('title slug country')
+        .select('title slug country description category isFeatured trendMetric lastUpdatedAt relatedArticles')
+        .populate({
+          path: 'relatedArticles',
+          match: livePublished(),
+          select: 'slug title excerpt featuredImage category author publishedAt updatedAt readingTime',
+          populate: [
+            { path: 'category', select: 'name slug' },
+            { path: 'author', select: 'name slug designation' },
+          ],
+        })
         .sort({ isFeatured: -1, lastUpdatedAt: -1 })
-        .limit(8)
-        .lean<{ slug: string; title: string; country: string }[]>(),
+        .limit(100)
+        .lean<{
+          slug: string;
+          title: string;
+          country: string;
+          description?: string;
+          category?: string;
+          isFeatured: boolean;
+          trendMetric?: string;
+          relatedArticles?: (Row | null)[];
+        }[]>(),
     ]);
 
     const heroRow = featured[0] ?? latest[0] ?? null;
     const rest = latest.filter((a) => a.slug !== heroRow?.slug);
+    const uniqueTrending = new Map<string, (typeof trending)[number]>();
+    for (const topic of trending) {
+      if (!uniqueTrending.has(topic.slug)) uniqueTrending.set(topic.slug, topic);
+      if (uniqueTrending.size === 8) break;
+    }
     return {
       breaking: breaking.map((b) => ({ slug: b.slug, title: b.title })),
-      trending: trending.map((t) => ({ slug: t.slug, title: t.title, country: t.country })),
+      trending: [...uniqueTrending.values()].map((t) => ({
+        slug: t.slug,
+        title: t.title,
+        country: t.country,
+        description: t.description ?? '',
+        category: t.category ?? 'general',
+        isFeatured: t.isFeatured,
+        trendMetric: t.trendMetric ?? null,
+        related: (t.relatedArticles ?? []).filter((article): article is Row => article !== null).map(toSummary),
+      })),
       hero: heroRow ? toSummary(heroRow) : null,
       topStories: rest.slice(0, 4).map(toSummary),
       featured: rest.slice(4, 8).map(toSummary),

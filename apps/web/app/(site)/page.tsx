@@ -36,7 +36,7 @@ export default async function HomePage() {
       {feed.topStories.length > 0 && (
         <section aria-labelledby="trending-stories-heading" className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
           <div className="mb-4 flex items-baseline justify-between">
-            <h2 id="trending-stories-heading" className="section-title text-2xl font-bold tracking-tight">Trending stories</h2>
+            <h2 id="trending-stories-heading" className="section-title text-2xl font-bold tracking-tight">Latest stories</h2>
             <Link href="/latest" className="text-sm font-medium text-accent-ink hover:underline">All latest</Link>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -45,17 +45,42 @@ export default async function HomePage() {
         </section>
       )}
       {feed.trending.length > 0 && (
-        <section aria-labelledby="trending-topics-heading" className="mx-auto mt-10 max-w-7xl px-4 sm:px-6">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 id="trending-topics-heading" className="section-title text-2xl font-bold tracking-tight">Trending topics</h2>
-            <Link href="/trending" className="text-sm font-medium text-accent-ink hover:underline">All topics</Link>
+        <section aria-labelledby="trending-topics-heading" className="mx-auto mt-12 max-w-7xl px-4 sm:px-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-accent-ink">What people are following</p>
+              <h2 id="trending-topics-heading" className="section-title mt-1 text-2xl font-bold tracking-tight">Trending now</h2>
+            </div>
+            <Link href="/trending" className="text-sm font-medium text-accent-ink hover:underline">Explore all topics</Link>
           </div>
-          <ul className="flex flex-wrap gap-2">
+          <ul className="grid gap-4 md:grid-cols-2">
             {feed.trending.map((t) => (
-              <li key={`${t.slug}-${t.country}`}>
-                <Link href={`/trending/${t.slug}?country=${t.country}`} className="block rounded-full border border-line bg-surface px-4 py-1.5 text-sm hover:border-accent">
+              <li key={`${t.slug}-${t.country}`} className="rounded-xl border border-line bg-surface p-5 shadow-sm">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                  <span>{t.category}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{t.country === 'WW' ? 'Worldwide' : t.country}</span>
+                  {t.isFeatured && <span className="rounded-full bg-accent/15 px-2 py-1 text-accent-ink">Featured</span>}
+                </div>
+                <Link href={`/trending/${t.slug}?country=${t.country}`} className="mt-2 block font-serif text-xl font-bold leading-snug hover:text-accent-ink">
                   {t.title}
                 </Link>
+                {t.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{t.description}</p>}
+                {t.related.length > 0 ? (
+                  <div className="mt-4 border-t border-line pt-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted">Related coverage</p>
+                    <ul className="mt-2 space-y-2">
+                      {t.related.slice(0, 3).map((article) => (
+                        <li key={article.id}>
+                          <Link href={`/articles/${article.slug}`} className="block text-sm font-semibold leading-snug text-accent-ink hover:underline">{article.title}</Link>
+                          <p className="mt-0.5 line-clamp-1 text-xs text-muted">{article.excerpt}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="mt-4 border-t border-line pt-3 text-sm text-muted">Related articles are being curated.</p>
+                )}
               </li>
             ))}
           </ul>

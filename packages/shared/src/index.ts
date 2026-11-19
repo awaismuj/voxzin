@@ -85,7 +85,16 @@ export interface ArticleDetail extends ArticleSummary {
 
 export interface HomeFeed {
   breaking: { slug: string; title: string }[];
-  trending: { title: string; slug: string; country: string }[];
+  trending: {
+    title: string;
+    slug: string;
+    country: string;
+    description: string;
+    category: string;
+    isFeatured: boolean;
+    trendMetric: string | null;
+    related: ArticleSummary[];
+  }[];
   hero: ArticleSummary | null;
   topStories: ArticleSummary[];
   featured: ArticleSummary[];
@@ -313,6 +322,7 @@ export const trendPatchInput = z.object({
   keywords: z.array(z.string().trim().min(1).max(60)).max(20).optional(),
   relatedArticleIds: z.array(objectIdSchema).max(20).optional(),
 });
+export type TrendPatchInput = z.infer<typeof trendPatchInput>;
 
 export const newsletterInput = z.object({ email: emailSchema });
 export const newsletterTokenInput = z.object({ email: emailSchema, token: z.string().regex(/^[a-f0-9]{64}$/) });
