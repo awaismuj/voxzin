@@ -173,9 +173,23 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
         </section>
 
         <section className={`${card} space-y-3`}>
-          <h2 className="font-semibold">SEO</h2>
-          <div><label className={label} htmlFor="seot">SEO title</label><input id="seot" maxLength={70} className={input} value={f.seoTitle ?? ''} onChange={(e) => set('seoTitle', e.target.value)} /></div>
-          <div><label className={label} htmlFor="seod">Meta description</label><textarea id="seod" rows={3} maxLength={170} className={input} value={f.metaDescription ?? ''} onChange={(e) => set('metaDescription', e.target.value)} /></div>
+          <h2 className="font-semibold">Search appearance</h2>
+          <div>
+            <label className={label} htmlFor="seot">SEO title</label>
+            <input id="seot" maxLength={70} className={input} value={f.seoTitle ?? ''} onChange={(e) => set('seoTitle', e.target.value)} placeholder={f.title || 'Search result headline'} />
+            <p className="mt-1 text-xs text-muted">{(f.seoTitle || f.title || '').length}/70 characters · clear, accurate titles around 30–60 characters are a useful target.</p>
+          </div>
+          <div>
+            <label className={label} htmlFor="seod">Meta description</label>
+            <textarea id="seod" rows={3} maxLength={170} className={input} value={f.metaDescription ?? ''} onChange={(e) => set('metaDescription', e.target.value)} placeholder={f.excerpt || 'Summarize what readers will learn'} />
+            <p className="mt-1 text-xs text-muted">{(f.metaDescription || f.excerpt || '').length}/170 characters · use a useful, specific summary; Google may choose a different snippet.</p>
+          </div>
+          <div className="rounded-md border border-line bg-white p-4 text-[#202124] shadow-sm">
+            <p className="text-xs text-[#5f6368]">voxzin.com › articles › {f.slug || 'article-url'}</p>
+            <p className="mt-1 line-clamp-1 text-xl leading-snug text-[#1a0dab]">{f.seoTitle || f.title || 'Search result title'}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-[#4d5156]">{f.metaDescription || f.excerpt || 'A concise summary of this article will appear here.'}</p>
+          </div>
+          {f.featuredImage?.url && !f.featuredImage.alt.trim() && <p className="text-xs text-amber-700">Add descriptive alt text to the featured image.</p>}
           <div>
             <label className={label} htmlFor="canon">Canonical URL (optional)</label>
             <input id="canon" type="url" className={input} value={f.canonicalUrl ?? ''} onChange={(e) => set('canonicalUrl', e.target.value)} />

@@ -88,8 +88,8 @@ export class MediaController {
       try {
         content = await sharp(file.buffer, { limitInputPixels: 40_000_000 })
           .rotate()
-          .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: 80, effort: 4 })
+          .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 76, effort: 4 })
           .toBuffer();
         ext = 'webp';
         mime = 'image/webp';

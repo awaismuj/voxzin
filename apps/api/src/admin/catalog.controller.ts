@@ -16,6 +16,9 @@ export class CatalogController {
   @Get('stats') @Roles('super_admin', 'admin', 'editor')
   stats() { return this.s.stats(); }
 
+  @Get('seo/overview') @Roles('super_admin', 'admin', 'editor')
+  seoOverview() { return this.s.seoOverview(); }
+
   // Lookups every writer needs (read only)
   @Get('categories') @Roles('super_admin', 'admin', 'editor', 'author')
   categories() { return this.s.listCategories(); }

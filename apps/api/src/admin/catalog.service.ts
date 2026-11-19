@@ -13,6 +13,20 @@ import { MailService } from '../newsletter/mail.service';
 type Id = { toString(): string };
 const dup = (e: unknown) => typeof e === 'object' && e !== null && (e as { code?: number }).code === 11000;
 
+interface SeoAuditResult {
+  summary: {
+    published: number;
+    titlesMissing: number;
+    titlesTooLong: number;
+    descriptionsMissing: number;
+    descriptionsTooLong: number;
+    missingImages: number;
+    missingImageAlt: number;
+    needsAttention: number;
+  };
+  articles: { id: string; slug: string; title: string; issues: string[] }[];
+}
+
 @Injectable()
 export class CatalogService {
   constructor(
@@ -243,5 +257,95 @@ export class CatalogService {
     ]);
     const counts = Object.fromEntries(byStatus.map((r) => [r._id, r.n]));
     return { articles: counts, categories, authors, trends: { pending: trendPending, approved: trendApproved }, subscribers };
+  }
+
+  async seoOverview(): Promise<SeoAuditResult> {
+    const [report] = await this.articles.aggregate<SeoAuditResult>([
+      { $match: { status: 'published', publishedAt: { $lte: new Date() } } },
+      {
+        $project: {
+          title: 1,
+          slug: 1,
+          publishedAt: 1,
+          seoTitleText: { $trim: { input: { $ifNull: ['$seoTitle', ''] } } },
+          descriptionText: {
+            $trim: {
+              input: {
+                $cond: [
+                  { $gt: [{ $strLenCP: { $trim: { input: { $ifNull: ['$metaDescription', ''] } } } }, 0] },
+                  '$metaDescription',
+                  { $ifNull: ['$excerpt', ''] },
+                ],
+              },
+            },
+          },
+          imageUrl: { $trim: { input: { $ifNull: ['$featuredImage.url', ''] } } },
+          imageAlt: { $trim: { input: { $ifNull: ['$featuredImage.alt', ''] } } },
+        },
+      },
+      {
+        $addFields: {
+          titleMissing: { $eq: [{ $strLenCP: '$seoTitleText' }, 0] },
+          titleTooLong: { $gt: [{ $strLenCP: '$seoTitleText' }, 70] },
+          descriptionMissing: { $eq: [{ $strLenCP: '$descriptionText' }, 0] },
+          descriptionTooLong: { $gt: [{ $strLenCP: '$descriptionText' }, 170] },
+          imageMissing: { $eq: ['$imageUrl', ''] },
+          imageAltMissing: { $and: [{ $ne: ['$imageUrl', ''] }, { $eq: ['$imageAlt', ''] }] },
+        },
+      },
+      {
+        $addFields: {
+          issues: {
+            $concatArrays: [
+              { $cond: ['$titleMissing', ['Add an SEO title'], []] },
+              { $cond: ['$titleTooLong', ['Shorten the SEO title to 70 characters or fewer'], []] },
+              { $cond: ['$descriptionMissing', ['Add a meta description'], []] },
+              { $cond: ['$descriptionTooLong', ['Shorten the meta description to 170 characters or fewer'], []] },
+              { $cond: ['$imageMissing', ['Add a featured image'], []] },
+              { $cond: ['$imageAltMissing', ['Add featured-image alt text'], []] },
+            ],
+          },
+        },
+      },
+      {
+        $facet: {
+          summary: [
+            {
+              $group: {
+                _id: null,
+                published: { $sum: 1 },
+                titlesMissing: { $sum: { $cond: ['$titleMissing', 1, 0] } },
+                titlesTooLong: { $sum: { $cond: ['$titleTooLong', 1, 0] } },
+                descriptionsMissing: { $sum: { $cond: ['$descriptionMissing', 1, 0] } },
+                descriptionsTooLong: { $sum: { $cond: ['$descriptionTooLong', 1, 0] } },
+                missingImages: { $sum: { $cond: ['$imageMissing', 1, 0] } },
+                missingImageAlt: { $sum: { $cond: ['$imageAltMissing', 1, 0] } },
+                needsAttention: { $sum: { $cond: [{ $gt: [{ $size: '$issues' }, 0] }, 1, 0] } },
+              },
+            },
+            { $project: { _id: 0 } },
+          ],
+          articles: [
+            { $match: { 'issues.0': { $exists: true } } },
+            { $sort: { publishedAt: -1 } },
+            { $limit: 50 },
+            { $project: { _id: 0, id: { $toString: '$_id' }, slug: 1, title: 1, issues: 1 } },
+          ],
+        },
+      },
+      {
+        $project: {
+          summary: {
+            $ifNull: [
+              { $arrayElemAt: ['$summary', 0] },
+              { published: 0, titlesMissing: 0, titlesTooLong: 0, descriptionsMissing: 0, descriptionsTooLong: 0, missingImages: 0, missingImageAlt: 0, needsAttention: 0 },
+            ],
+          },
+          articles: 1,
+        },
+      },
+    ]).exec();
+    if (!report) throw new Error('SEO audit returned no result');
+    return report;
   }
 }

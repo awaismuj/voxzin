@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 const LINKS: { href: string; label: string; roles: string[] }[] = [
   { href: '/admin', label: 'Dashboard', roles: ['super_admin', 'admin', 'editor'] },
   { href: '/admin/articles', label: 'Articles', roles: ['super_admin', 'admin', 'editor', 'author'] },
+  { href: '/admin/seo', label: 'SEO', roles: ['super_admin', 'admin', 'editor'] },
   { href: '/admin/media', label: 'Media', roles: ['super_admin', 'admin', 'editor', 'author'] },
   { href: '/admin/trending', label: 'Trending', roles: ['super_admin', 'admin', 'editor'] },
   { href: '/admin/categories', label: 'Categories', roles: ['super_admin', 'admin'] },
