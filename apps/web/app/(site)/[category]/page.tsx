@@ -42,7 +42,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const page = parsePage((await searchParams).page);
   const data = await getArticles({ category: cat.slug, page });
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <div className="w-full px-4 py-10 sm:px-6 lg:px-8">
       <h1 className="font-serif text-4xl font-semibold">{cat.name}</h1>
       <p className="mt-2 max-w-2xl text-muted">{cat.description}</p>
       <div className="mt-8"><ArticleList data={data} basePath={`/${cat.slug}`} /></div>

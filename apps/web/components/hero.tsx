@@ -5,7 +5,7 @@ import { StoryMeta } from './story-meta';
 
 export function Hero({ lead }: { lead: ArticleSummary }) {
   return (
-    <section aria-label="Top story" className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
+    <section aria-label="Top story" className="w-full px-4 pt-6 sm:px-6 lg:px-8">
       <Link
         href={`/articles/${lead.slug}`}
         className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-xl lg:grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"

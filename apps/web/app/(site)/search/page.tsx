@@ -14,7 +14,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const data = q.length >= 2 ? await getSearch(q, page) : null;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <div className="w-full px-4 py-10 sm:px-6 lg:px-8">
       <h1 className="font-serif text-4xl font-semibold">Search</h1>
       <form action="/search" role="search" className="mt-6 flex max-w-xl gap-2">
         <label htmlFor="q" className="sr-only">Search VoxZin</label>

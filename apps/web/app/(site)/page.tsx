@@ -34,7 +34,7 @@ export default async function HomePage() {
       <Hero lead={feed.hero} />
       <CategoryBar />
       {feed.topStories.length > 0 && (
-        <section aria-labelledby="trending-stories-heading" className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
+        <section aria-labelledby="trending-stories-heading" className="mt-8 w-full px-4 sm:px-6 lg:px-8">
           <div className="mb-4 flex items-baseline justify-between">
             <h2 id="trending-stories-heading" className="section-title text-2xl font-bold tracking-tight">Latest stories</h2>
             <Link href="/latest" className="text-sm font-medium text-accent-ink hover:underline">All latest</Link>
@@ -45,7 +45,7 @@ export default async function HomePage() {
         </section>
       )}
       {feed.trending.length > 0 && (
-        <section aria-labelledby="trending-topics-heading" className="mx-auto mt-12 max-w-7xl px-4 sm:px-6">
+        <section aria-labelledby="trending-topics-heading" className="mt-12 w-full px-4 sm:px-6 lg:px-8">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-accent-ink">What people are following</p>
@@ -87,7 +87,7 @@ export default async function HomePage() {
         </section>
       )}
       {feed.featured.length > 0 && (
-        <section aria-labelledby="featured-heading" className="mx-auto mt-10 max-w-7xl px-4 sm:px-6">
+        <section aria-labelledby="featured-heading" className="mt-10 w-full px-4 sm:px-6 lg:px-8">
           <div className="mb-4 flex items-baseline justify-between">
             <h2 id="featured-heading" className="section-title text-2xl font-bold tracking-tight">Featured articles</h2>
             <Link href="/latest" className="text-sm font-medium text-accent-ink hover:underline">View all</Link>
