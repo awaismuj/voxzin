@@ -4,6 +4,17 @@ import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
+function isCanonicalArticle(article: { slug: string; canonicalUrl: string | null }) {
+  if (!article.canonicalUrl) return true;
+  const canonical = new URL(article.canonicalUrl);
+  const articleUrl = new URL(`/articles/${article.slug}`, SITE_URL);
+  canonical.hash = '';
+  articleUrl.hash = '';
+  canonical.pathname = canonical.pathname.replace(/\/+$/, '') || '/';
+  articleUrl.pathname = articleUrl.pathname.replace(/\/+$/, '') || '/';
+  return canonical.href === articleUrl.href;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { articles, categories, latestPages } = await getSitemapData();
   return [
@@ -24,6 +35,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'daily' as const,
       })),
     ]),
-    ...articles.map((a) => ({ url: `${SITE_URL}/articles/${a.slug}`, lastModified: new Date(a.updatedAt) })),
+    ...articles
+      .filter(isCanonicalArticle)
+      .map((a) => ({ url: `${SITE_URL}/articles/${a.slug}`, lastModified: new Date(a.updatedAt) })),
   ];
 }

@@ -2,13 +2,14 @@ import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site';
 
 // Everything public is open to search engines AND AI assistants/search (ChatGPT, Perplexity, Claude, Gemini, Copilot, Apple),
-// so VoxZin can be found, quoted and linked there. Only the admin area, the raw API and internal search pages are closed.
+// so VoxZin can be found, quoted and linked there. Search results are crawlable so bots can see their noindex directive.
+// Only the admin area and raw API are blocked.
 // Uploaded article images live under /api/v1/media/, which is explicitly allowed so image search and previews work.
 const ALLOW = ['/', '/api/v1/media/'];
-const DISALLOW = ['/admin', '/api/', '/search'];
+const DISALLOW = ['/admin', '/api/'];
 
 const CRAWLERS = [
-  // classic search
+  // Classic search
   'Googlebot', 'Googlebot-News', 'Googlebot-Image', 'Bingbot', 'DuckDuckBot', 'Applebot', 'YandexBot',
   // AI search and assistants
   'OAI-SearchBot', 'ChatGPT-User', 'GPTBot', 'PerplexityBot', 'Perplexity-User',

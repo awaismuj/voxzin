@@ -176,7 +176,11 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
           <h2 className="font-semibold">SEO</h2>
           <div><label className={label} htmlFor="seot">SEO title</label><input id="seot" maxLength={70} className={input} value={f.seoTitle ?? ''} onChange={(e) => set('seoTitle', e.target.value)} /></div>
           <div><label className={label} htmlFor="seod">Meta description</label><textarea id="seod" rows={3} maxLength={170} className={input} value={f.metaDescription ?? ''} onChange={(e) => set('metaDescription', e.target.value)} /></div>
-          <div><label className={label} htmlFor="canon">Canonical URL</label><input id="canon" className={input} value={f.canonicalUrl ?? ''} onChange={(e) => set('canonicalUrl', e.target.value)} /></div>
+          <div>
+            <label className={label} htmlFor="canon">Canonical URL (optional)</label>
+            <input id="canon" type="url" className={input} value={f.canonicalUrl ?? ''} onChange={(e) => set('canonicalUrl', e.target.value)} />
+            <p className="mt-1 text-xs text-muted">Use the original URL only when this article republishes content from another page. Otherwise, leave blank so VoxZin is canonical.</p>
+          </div>
           {f.slug && <p className="text-xs text-muted">URL slug is fixed after creation: /articles/{f.slug}</p>}
         </section>
 

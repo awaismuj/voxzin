@@ -4,7 +4,7 @@ import { EmptyState } from '@/components/empty-state';
 import { getSearch } from '@/lib/api';
 import { parsePage } from '@/lib/page';
 
-export const metadata: Metadata = { title: 'Search', robots: { index: false } };
+export const metadata: Metadata = { title: 'Search', robots: { index: false, follow: true } };
 export const dynamic = 'force-dynamic';
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string | string[]; page?: string | string[] }> }) {

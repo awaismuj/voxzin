@@ -20,11 +20,19 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const cat = await findCategory((await params).category);
   if (!cat) return {};
   const page = parsePage((await searchParams).page);
+  const canonical = page > 1 ? `/${cat.slug}/page/${page}` : `/${cat.slug}`;
+  const title = page > 1 ? `${cat.name} - Page ${page}` : cat.name;
   return {
-    title: cat.name,
+    title,
     description: cat.description,
-    alternates: { canonical: page > 1 ? `/${cat.slug}/page/${page}` : `/${cat.slug}` },
-    openGraph: { type: 'website', siteName: SITE_NAME, url: `${SITE_URL}/${cat.slug}`, title: `${cat.name} | ${SITE_NAME}`, description: cat.description },
+    alternates: { canonical },
+    openGraph: {
+      type: 'website',
+      siteName: SITE_NAME,
+      url: `${SITE_URL}${canonical}`,
+      title: `${title} | ${SITE_NAME}`,
+      description: cat.description,
+    },
   };
 }
 

@@ -24,10 +24,10 @@ export class SiteController {
     const [rows, activeCategories, articleCount] = await Promise.all([
       this.articles
         .find(filter)
-        .select('slug updatedAt')
+        .select('slug updatedAt canonicalUrl')
         .sort({ publishedAt: -1 })
         .limit(50_000)
-        .lean<{ slug: string; updatedAt: Date }[]>(),
+        .lean<{ slug: string; updatedAt: Date; canonicalUrl?: string }[]>(),
       this.categories.find({ isActive: true }).select('_id slug').lean<{ _id: unknown; slug: string }[]>(),
       this.articles.countDocuments(filter),
     ]);
@@ -39,7 +39,11 @@ export class SiteController {
       : [];
     const byCategory = new Map(counts.map((c) => [String(c._id), c.count]));
     return {
-      articles: rows.map((r) => ({ slug: r.slug, updatedAt: r.updatedAt.toISOString() })),
+      articles: rows.map((r) => ({
+        slug: r.slug,
+        updatedAt: r.updatedAt.toISOString(),
+        canonicalUrl: r.canonicalUrl ?? null,
+      })),
       categories: activeCategories.map((c) => ({
         slug: c.slug,
         pages: Math.min(1000, Math.max(1, Math.ceil((byCategory.get(String(c._id)) ?? 0) / 12))),
