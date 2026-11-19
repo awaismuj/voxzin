@@ -21,7 +21,7 @@ export default async function LatestPage({ searchParams }: { searchParams: Promi
   const page = parsePage((await searchParams).page);
   const data = await getArticles({ page });
   return (
-    <div className="mx-auto w-full px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <h1 className="font-serif text-4xl font-semibold">Latest</h1>
       <p className="mt-2 text-muted">Every new story, newest first.</p>
       <div className="mt-8"><ArticleList data={data} basePath="/latest" /></div>

@@ -11,7 +11,7 @@ export default async function NewsletterPage({
   const { email, token } = await searchParams;
   if ((action !== 'confirm' && action !== 'unsubscribe') || !email || !token) notFound();
   return (
-    <div className="mx-auto w-full px-4 py-24 text-center sm:px-6">
+    <div className="mx-auto max-w-xl px-4 py-24 text-center sm:px-6">
       <h1 className="font-serif text-3xl font-semibold">{action === 'confirm' ? 'Confirm your subscription' : 'Unsubscribe from the briefing'}</h1>
       <p className="mt-3 text-muted">{email}</p>
       <div className="mt-8"><NewsletterAction action={action} email={email} token={token} /></div>

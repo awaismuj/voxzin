@@ -92,7 +92,7 @@ export default async function ArticlePage({ params }: Props) {
     ],
   };
   return (
-    <article className="mx-auto w-full px-4 py-10 sm:px-6">
+    <article className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, '\\u003c') }} />
       <header className="mx-auto max-w-3xl">
         <nav aria-label="Breadcrumb" className="text-sm">
@@ -116,14 +116,14 @@ export default async function ArticlePage({ params }: Props) {
 
       <StoryFrame
         image={a.image}
-        sizes="100vw"
+        sizes="(min-width: 896px) 896px, 100vw"
         mode="natural"
         priority
-        className="mx-auto mt-8 w-full rounded-2xl shadow-sm"
+        className="mx-auto mt-8 max-w-4xl rounded-2xl shadow-sm"
       />
 
       {youtubeId && (
-        <section aria-label="Article video" className="mx-auto mt-8 w-full">
+        <section aria-label="Article video" className="mx-auto mt-8 max-w-4xl">
           <div className="aspect-video overflow-hidden rounded-2xl bg-black shadow-sm">
             <iframe
               src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
