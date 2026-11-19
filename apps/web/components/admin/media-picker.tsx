@@ -25,6 +25,7 @@ export function MediaPicker({
   const [alt, setAlt] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -82,8 +83,9 @@ export function MediaPicker({
     }
     setUploading(true);
     setError('');
+    setUploadStatus('Starting upload…');
     try {
-      const url = await uploadImage(file, alt.trim());
+      const url = await uploadImage(file, alt.trim(), setUploadStatus);
       onSelect({ url, alt: alt.trim() });
       form.reset();
       setAlt('');
@@ -92,6 +94,7 @@ export function MediaPicker({
       setError(e instanceof Error ? e.message : 'Image upload failed');
     } finally {
       setUploading(false);
+      setUploadStatus('');
     }
   }
 
@@ -119,9 +122,10 @@ export function MediaPicker({
             <form onSubmit={upload} className="mt-4 grid gap-3 rounded-lg border border-line p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
               <div><label className={label} htmlFor="picker-file">Upload image</label><input ref={fileRef} id="picker-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required className="block w-full text-sm" /><p className="mt-1 text-xs text-muted">Still images are optimized automatically for faster loading.</p></div>
               <div><label className={label} htmlFor="picker-alt">Image description (alt text)</label><input id="picker-alt" className={input} maxLength={300} required value={alt} onChange={(e) => setAlt(e.target.value)} /></div>
-              <button disabled={uploading} className={btn}>{uploading ? 'Uploading…' : 'Upload and use'}</button>
+              <button disabled={uploading} className={btn}>{uploading ? 'Working…' : 'Upload and use'}</button>
             </form>
 
+            {uploading && <p role="status" className="mt-3 text-sm text-muted">{uploadStatus}</p>}
             {error && <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>}
             {loading ? <p className="py-10 text-center text-sm text-muted">Loading images…</p> : items.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted">No images found. Upload one above or visit the Media library.</p>

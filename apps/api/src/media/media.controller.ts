@@ -82,20 +82,28 @@ export class MediaController {
       throw new BadRequestException('Image description must be 300 characters or fewer');
     }
     let content = file.buffer;
-    let ext = type.ext;
-    let mime = type.mime;
-    if (type.ext !== 'gif') {
-      try {
-        content = await sharp(file.buffer, { limitInputPixels: 40_000_000 })
+    const ext = 'webp';
+    const mime = 'image/webp';
+    try {
+      const image = sharp(file.buffer, { limitInputPixels: 40_000_000, animated: type.ext === 'gif' });
+      const metadata = await image.metadata();
+      const isPreparedWebp = type.ext === 'webp'
+        && metadata.width !== undefined
+        && metadata.height !== undefined
+        && metadata.width <= 1280
+        && metadata.height <= 1280
+        && metadata.orientation === undefined;
+      if (isPreparedWebp) {
+        content = file.buffer;
+      } else {
+        content = await image
           .rotate()
-          .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: 76, effort: 4 })
+          .resize({ width: 1280, height: 1280, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 76, effort: 1 })
           .toBuffer();
-        ext = 'webp';
-        mime = 'image/webp';
-      } catch {
-        throw new BadRequestException('Image could not be processed. Choose a valid PNG, JPEG or WebP image.');
       }
+    } catch {
+      throw new BadRequestException('Image could not be processed. Choose a valid PNG, JPEG, WebP or GIF image.');
     }
     const filename = `${randomBytes(16).toString('hex')}.${ext}`;
     const dir = resolve(env.UPLOAD_DIR);
@@ -128,13 +136,16 @@ export class MediaController {
   }
 
   @Get(':file')
-  @Header('Cache-Control', 'public, max-age=31536000, immutable')
   @Header('X-Content-Type-Options', 'nosniff')
   @Header('Content-Security-Policy', "default-src 'none'; sandbox")
   serve(@Param('file') file: string, @Res() res: Response) {
     if (!/^[a-f0-9]{32}\.(png|jpg|webp|gif)$/.test(file)) throw new NotFoundException();
-    res.sendFile(resolve(env.UPLOAD_DIR, file), (err) => {
-      if (err && !res.headersSent) res.status(404).end();
-    });
+    res.sendFile(
+      resolve(env.UPLOAD_DIR, file),
+      { maxAge: '1y', immutable: true },
+      (err) => {
+        if (err && !res.headersSent) res.status(404).end();
+      },
+    );
   }
 }

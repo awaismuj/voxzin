@@ -23,6 +23,7 @@ export function SafeStoryImage({
   if (failed) return <div className={PLACEHOLDER} aria-hidden />;
   const contain = fit === 'contain';
   const fitClass = contain ? 'object-contain' : 'object-cover';
+  const uploadedMedia = /^\/api\/v1\/media\/[a-f0-9]{32}\.webp$/.test(src);
   return (
     <Image
       src={src}
@@ -30,6 +31,8 @@ export function SafeStoryImage({
       fill
       sizes={sizes}
       priority={priority}
+      unoptimized={uploadedMedia}
+      decoding="async"
       onError={() => setFailed(true)}
       className={`${PLACEHOLDER} ${fitClass}`}
     />

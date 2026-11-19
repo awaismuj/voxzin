@@ -20,6 +20,7 @@ export function MediaLibrary({ initial }: { initial: MediaPage }) {
   const [alt, setAlt] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -58,19 +59,21 @@ export function MediaLibrary({ initial }: { initial: MediaPage }) {
     setUploading(true);
     setError('');
     setNotice('');
+    setUploadStatus('Starting upload…');
     try {
-      await uploadImage(file, alt.trim());
+      await uploadImage(file, alt.trim(), setUploadStatus);
       form.reset();
       setAlt('');
       setPage(1);
       setSearch('');
       setQuery('');
       setRefresh((current) => current + 1);
-      setNotice('Image uploaded to the media library.');
+      setNotice('Image optimized and uploaded to the media library.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Image upload failed');
     } finally {
       setUploading(false);
+      setUploadStatus('');
     }
   }
 
@@ -96,8 +99,9 @@ export function MediaLibrary({ initial }: { initial: MediaPage }) {
         <form onSubmit={upload} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
           <div><label className={label} htmlFor="media-file">Image file</label><input ref={fileRef} id="media-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required className="block w-full text-sm" /></div>
           <div><label className={label} htmlFor="media-alt">Image description (alt text)</label><input id="media-alt" className={input} maxLength={300} required value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Describe what the image shows" /></div>
-          <button disabled={uploading} className={btn}>{uploading ? 'Uploading…' : 'Upload image'}</button>
+          <button disabled={uploading} className={btn}>{uploading ? 'Working…' : 'Upload image'}</button>
         </form>
+        {uploading && <p role="status" className="mt-3 text-sm text-muted">{uploadStatus}</p>}
       </section>
 
       <div className="flex flex-wrap items-end justify-between gap-3">
