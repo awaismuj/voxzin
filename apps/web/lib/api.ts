@@ -34,7 +34,8 @@ export const getTrending = (country: string) => request<TrendTopicDto[]>(`/trend
 export const getTrendTopic = cache((slug: string, country?: string) =>
   request<TrendTopicDto>(`/trending/${encodeURIComponent(slug)}${country ? `?country=${encodeURIComponent(country)}` : ''}`, 120));
 export const getSitemapData = () => request<{
-  articles: { slug: string; updatedAt: string; canonicalUrl: string | null }[];
+  articles: { slug: string; updatedAt: string; canonicalUrl: string | null; imageUrl: string | null }[];
+  trendingTopics: { slug: string; updatedAt: string }[];
   categories: { slug: string; pages: number }[];
   latestPages: number;
-}>('/sitemap', false);
+}>('/sitemap', 300);

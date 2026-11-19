@@ -1,8 +1,11 @@
 import type { MetadataRoute } from 'next';
+import { unstable_cache } from 'next/cache';
 import { getSitemapData } from '@/lib/api';
-import { SITE_URL } from '@/lib/site';
+import { absoluteUrl, SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
+
+const getCachedSitemapData = unstable_cache(getSitemapData, ['sitemap-data'], { revalidate: 300 });
 
 function isCanonicalArticle(article: { slug: string; canonicalUrl: string | null }) {
   if (!article.canonicalUrl) return true;
@@ -16,7 +19,7 @@ function isCanonicalArticle(article: { slug: string; canonicalUrl: string | null
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { articles, categories, latestPages } = await getSitemapData();
+  const { articles, categories, latestPages, trendingTopics } = await getCachedSitemapData();
   return [
     { url: `${SITE_URL}/`, changeFrequency: 'hourly', priority: 1 },
     { url: `${SITE_URL}/about`, changeFrequency: 'monthly', priority: 0.5 },
@@ -35,8 +38,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'daily' as const,
       })),
     ]),
+    ...trendingTopics.map((topic) => ({
+      url: `${SITE_URL}/trending/${topic.slug}`,
+      lastModified: new Date(topic.updatedAt),
+    })),
     ...articles
       .filter(isCanonicalArticle)
-      .map((a) => ({ url: `${SITE_URL}/articles/${a.slug}`, lastModified: new Date(a.updatedAt) })),
+      .map((a) => ({
+        url: `${SITE_URL}/articles/${a.slug}`,
+        lastModified: new Date(a.updatedAt),
+        images: a.imageUrl ? [absoluteUrl(a.imageUrl)] : undefined,
+      })),
   ];
 }
