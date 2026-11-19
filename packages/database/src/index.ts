@@ -47,6 +47,7 @@ export const ArticleSchema = new Schema(
     subtitle: { type: String, maxlength: 300 },
     excerpt: { type: String, required: true, maxlength: 400 },
     content: { type: String, required: true },
+    youtubeUrl: { type: String, maxlength: 2000 },
     featuredImage: { url: { type: String, maxlength: 2000 }, alt: { type: String, maxlength: 300 } },
     category: oid('Category', true),
     author: oid('Author', true),

@@ -7,6 +7,7 @@ import { StoryFrame } from '@/components/story-frame';
 import { ApiError, getArticle } from '@/lib/api';
 import { absoluteUrl, SITE_NAME, SITE_URL } from '@/lib/site';
 import { formatDate } from '@/lib/utils';
+import { getYouTubeVideoId } from '@voxzin/shared';
 
 type Props = { params: Promise<{ slug: string }> };
 export const revalidate = 60;
@@ -56,6 +57,7 @@ export default async function ArticlePage({ params }: Props) {
 
   const url = `${SITE_URL}/articles/${a.slug}`;
   const image = a.image ? absoluteUrl(a.image.url) : undefined;
+  const youtubeId = a.youtubeUrl ? getYouTubeVideoId(a.youtubeUrl) : null;
   const words = a.content.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
 
   const ld = {
@@ -119,6 +121,22 @@ export default async function ArticlePage({ params }: Props) {
         priority
         className="mx-auto mt-8 max-w-4xl rounded-2xl shadow-sm"
       />
+
+      {youtubeId && (
+        <section aria-label="Article video" className="mx-auto mt-8 max-w-4xl">
+          <div className="aspect-video overflow-hidden rounded-2xl bg-black shadow-sm">
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
+              title={`YouTube video: ${a.title}`}
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              className="size-full"
+            />
+          </div>
+        </section>
+      )}
 
       <div className="mx-auto mt-10 max-w-3xl">
         <ArticleBody html={a.content} />

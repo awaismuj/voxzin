@@ -18,6 +18,7 @@ interface Row {
   slug: string;
   title: string;
   subtitle?: string;
+  youtubeUrl?: string | null;
   excerpt: string;
   content: string;
   featuredImage?: { url?: string; alt?: string };
@@ -186,6 +187,7 @@ export class ArticlesService {
     return {
       ...toSummary(row),
       subtitle: row.subtitle ?? null,
+      youtubeUrl: row.youtubeUrl ?? null,
       content: sanitizeArticleHtml(row.content),
       updatedAt: row.updatedAt.toISOString(),
       author: { name: row.author.name, slug: row.author.slug, designation: row.author.designation ?? null },

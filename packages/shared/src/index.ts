@@ -74,6 +74,7 @@ export interface ArticleSummary {
 
 export interface ArticleDetail extends ArticleSummary {
   subtitle: string | null;
+  youtubeUrl: string | null;
   /** Sanitized HTML. The API sanitizes before sending. */
   content: string;
   updatedAt: string;
@@ -192,6 +193,32 @@ const imageUrl = z
   .max(2000)
   .refine((u) => u.startsWith('https://') || u.startsWith('/api/v1/media/'), 'Use an uploaded or https image');
 
+export function getYouTubeVideoId(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return null;
+    const hostname = url.hostname.toLowerCase();
+    if (hostname === 'youtu.be') {
+      const id = url.pathname.split('/').filter(Boolean)[0];
+      return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+    }
+    if (!['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtube-nocookie.com', 'www.youtube-nocookie.com'].includes(hostname)) {
+      return null;
+    }
+    const parts = url.pathname.split('/').filter(Boolean);
+    const id = parts[0] === 'watch' ? url.searchParams.get('v') : ['embed', 'shorts', 'live'].includes(parts[0] ?? '') ? parts[1] : null;
+    return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+const youtubeVideoUrl = z
+  .string()
+  .url()
+  .max(2000)
+  .refine((value) => getYouTubeVideoId(value) !== null, 'Enter a valid HTTPS YouTube video link');
+
 export const loginInput = z.object({ email: emailSchema, password: z.string().min(1).max(200) });
 export const passwordResetRequestInput = z.object({ email: emailSchema });
 export const passwordResetConfirmInput = z.object({
@@ -213,6 +240,7 @@ export const articleInput = z.object({
   seoTitle: z.string().trim().max(70).optional(),
   metaDescription: z.string().trim().max(170).optional(),
   canonicalUrl: httpsUrl.optional(),
+  youtubeUrl: youtubeVideoUrl.nullable().optional(),
   isFeatured: z.boolean().default(false),
   isBreaking: z.boolean().default(false),
   aiAssisted: z.boolean().default(false),

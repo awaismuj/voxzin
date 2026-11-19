@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState } from 'react';
-import { canTransition, TRANSITIONS, type ArticleStatus, type Role } from '@voxzin/shared';
+import { canTransition, getYouTubeVideoId, TRANSITIONS, type ArticleStatus, type Role } from '@voxzin/shared';
 import { adminFetch } from '@/lib/admin-client';
 import { RichEditor } from './rich-editor';
 import { MediaPicker } from './media-picker';
@@ -12,6 +12,7 @@ import { btn, btnGhost, card, input, label } from './ui';
 export interface ArticleDoc {
   id?: string; title?: string; subtitle?: string; excerpt?: string; content?: string; category?: string; author?: string;
   tags?: string[]; sources?: { title: string; url: string }[]; featuredImage?: { url: string; alt: string };
+  youtubeUrl?: string | null;
   seoTitle?: string; metaDescription?: string; canonicalUrl?: string; isFeatured?: boolean; isBreaking?: boolean;
   status?: ArticleStatus; slug?: string; aiAssisted?: boolean;
 }
@@ -47,6 +48,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     tags: tagsText.split(',').map((t) => t.trim()).filter(Boolean),
     sources: parseSources(sourcesText),
     featuredImage: f.featuredImage?.url ? { url: f.featuredImage.url, alt: f.featuredImage.alt || f.title } : undefined,
+    youtubeUrl: f.youtubeUrl?.trim() || null,
     seoTitle: f.seoTitle || undefined, metaDescription: f.metaDescription || undefined, canonicalUrl: f.canonicalUrl || undefined,
     isFeatured: Boolean(f.isFeatured), isBreaking: Boolean(f.isBreaking), aiAssisted: Boolean(f.aiAssisted),
   });
@@ -91,6 +93,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   }
 
   const next = f.id ? TRANSITIONS[status].filter((to) => canTransition(role, status, to)) : [];
+  const youtubeId = f.youtubeUrl ? getYouTubeVideoId(f.youtubeUrl) : null;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
@@ -104,6 +107,19 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
           <article className="rounded-md border border-line bg-surface p-6">
             <h1 className="font-serif text-4xl font-semibold">{f.title}</h1>
             {f.subtitle && <p className="mt-2 font-serif text-xl text-muted">{f.subtitle}</p>}
+            {youtubeId && (
+              <div className="mt-6 aspect-video overflow-hidden rounded-xl bg-black">
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
+                  title={`YouTube video: ${f.title || 'article video'}`}
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                  className="size-full"
+                />
+              </div>
+            )}
             <div className="article-body mt-6" dangerouslySetInnerHTML={{ __html: f.content ?? '' }} />
           </article>
         ) : (
@@ -111,6 +127,20 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
             <div><label className={label} htmlFor="title">Headline</label><input id="title" className={input} value={f.title ?? ''} maxLength={200} onChange={(e) => set('title', e.target.value)} /></div>
             <div><label className={label} htmlFor="sub">Subtitle</label><input id="sub" className={input} value={f.subtitle ?? ''} maxLength={300} onChange={(e) => set('subtitle', e.target.value)} /></div>
             <div><label className={label} htmlFor="exc">Excerpt</label><textarea id="exc" rows={2} className={input} value={f.excerpt ?? ''} maxLength={400} onChange={(e) => set('excerpt', e.target.value)} /></div>
+            <div>
+              <label className={label} htmlFor="youtubeUrl">YouTube video (optional)</label>
+              <input
+                id="youtubeUrl"
+                type="url"
+                className={input}
+                value={f.youtubeUrl ?? ''}
+                onChange={(e) => set('youtubeUrl', e.target.value || null)}
+                placeholder="https://www.youtube.com/watch?v=..."
+                aria-describedby="youtube-help"
+              />
+              <p id="youtube-help" className="mt-1 text-xs text-muted">Paste a YouTube watch, youtu.be, Shorts, or live link. It appears below the featured image and above the article text.</p>
+              {f.youtubeUrl && !youtubeId && <p role="alert" className="mt-1 text-xs text-red-600">Enter a valid HTTPS YouTube video URL.</p>}
+            </div>
             <div><span className={label}>Body</span><RichEditor value={f.content ?? ''} onChange={(h) => set('content', h)} /></div>
             <div><label className={label} htmlFor="src">Sources (one per line: Title | https://link)</label>
               <textarea id="src" rows={4} className={input} value={sourcesText} onChange={(e) => setSourcesText(e.target.value)} />

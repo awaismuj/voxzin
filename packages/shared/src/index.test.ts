@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { articleInput, canTransition, categoryInput, countryCodeSchema, listArticlesQuery, mediaListQuery, mediaMetadataInput, slugSchema, slugify } from './index';
+import { articleInput, canTransition, categoryInput, countryCodeSchema, getYouTubeVideoId, listArticlesQuery, mediaListQuery, mediaMetadataInput, slugSchema, slugify } from './index';
 
 describe('slugSchema', () => {
   it('accepts normal slugs', () => expect(slugSchema.safeParse('internet-culture').success).toBe(true));
@@ -63,5 +63,17 @@ describe('articleInput', () => {
       categoryId: 'a'.repeat(24), sources: [{ title: 'x', url: 'http://example.com' }],
     });
     expect(r.success).toBe(false);
+  });
+
+  it('accepts supported YouTube URLs and rejects non-YouTube embeds', () => {
+    const article = {
+      title: 'A valid title', excerpt: 'A valid excerpt here', content: '<p>Some body text here ok</p>',
+      categoryId: 'a'.repeat(24),
+    };
+    expect(articleInput.safeParse({ ...article, youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ' }).success).toBe(true);
+    expect(articleInput.safeParse({ ...article, youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }).success).toBe(true);
+    expect(articleInput.safeParse({ ...article, youtubeUrl: 'https://example.com/embed/dQw4w9WgXcQ' }).success).toBe(false);
+    expect(articleInput.safeParse({ ...article, youtubeUrl: 'javascript:alert(1)' }).success).toBe(false);
+    expect(getYouTubeVideoId('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
   });
 });

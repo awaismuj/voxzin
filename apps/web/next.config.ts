@@ -10,6 +10,7 @@ const csp = [
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
+  "frame-src 'self' https://www.youtube-nocookie.com",
   "font-src 'self' data:",
   `connect-src 'self'${isDev ? ' ws:' : ''}`,
   "object-src 'none'",
