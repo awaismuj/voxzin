@@ -62,6 +62,7 @@ export const ArticleSchema = new Schema(
     readingTime: { type: Number, default: 1, min: 1 },
     seoTitle: { type: String, maxlength: 70 },
     metaDescription: { type: String, maxlength: 170 },
+    focusKeyword: { type: String, maxlength: 80 },
     canonicalUrl: { type: String, maxlength: 2000 },
     createdBy: oid('User'),
     updatedBy: oid('User'),

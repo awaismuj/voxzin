@@ -239,6 +239,7 @@ export const articleInput = z.object({
   featuredImage: z.object({ url: imageUrl, alt: z.string().trim().min(1).max(300) }).optional(),
   seoTitle: z.string().trim().max(70).optional(),
   metaDescription: z.string().trim().max(170).optional(),
+  focusKeyword: z.string().trim().max(80).optional(),
   canonicalUrl: httpsUrl.optional(),
   youtubeUrl: youtubeVideoUrl.nullable().optional(),
   isFeatured: z.boolean().default(false),

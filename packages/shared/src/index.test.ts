@@ -76,4 +76,15 @@ describe('articleInput', () => {
     expect(articleInput.safeParse({ ...article, youtubeUrl: 'javascript:alert(1)' }).success).toBe(false);
     expect(getYouTubeVideoId('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
   });
+
+  it('accepts and trims an optional focus keyword', () => {
+    const article = {
+      title: 'A valid title', excerpt: 'A valid excerpt here', content: '<p>Some body text here ok</p>',
+      categoryId: 'a'.repeat(24),
+    };
+    const parsed = articleInput.safeParse({ ...article, focusKeyword: '  global technology  ' });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.focusKeyword).toBe('global technology');
+    expect(articleInput.safeParse({ ...article, focusKeyword: 'x'.repeat(81) }).success).toBe(false);
+  });
 });

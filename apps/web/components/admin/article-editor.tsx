@@ -13,7 +13,7 @@ export interface ArticleDoc {
   id?: string; title?: string; subtitle?: string; excerpt?: string; content?: string; category?: string; author?: string;
   tags?: string[]; sources?: { title: string; url: string }[]; featuredImage?: { url: string; alt: string };
   youtubeUrl?: string | null;
-  seoTitle?: string; metaDescription?: string; canonicalUrl?: string; isFeatured?: boolean; isBreaking?: boolean;
+  seoTitle?: string; metaDescription?: string; focusKeyword?: string; canonicalUrl?: string; isFeatured?: boolean; isBreaking?: boolean;
   status?: ArticleStatus; slug?: string; aiAssisted?: boolean;
 }
 type Opt = { _id: string; name: string };
@@ -24,6 +24,16 @@ const parseSources = (text: string) =>
     const url = rest.join('|').trim();
     return url ? { title: t!.trim(), url } : { title: l, url: l };
   });
+
+function articleText(html: string) {
+  return html
+    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&(?:nbsp|#160);/gi, ' ')
+    .replace(/&(?:amp|lt|gt|quot|#39);/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 export function ArticleEditor({ initial, categories, authors, role }: { initial?: ArticleDoc; categories: Opt[]; authors: Opt[]; role: Role }) {
   const router = useRouter();
@@ -49,7 +59,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     sources: parseSources(sourcesText),
     featuredImage: f.featuredImage?.url ? { url: f.featuredImage.url, alt: f.featuredImage.alt || f.title } : undefined,
     youtubeUrl: f.youtubeUrl?.trim() || null,
-    seoTitle: f.seoTitle || undefined, metaDescription: f.metaDescription || undefined, canonicalUrl: f.canonicalUrl || undefined,
+    seoTitle: f.seoTitle || undefined, metaDescription: f.metaDescription || undefined, focusKeyword: f.focusKeyword || undefined, canonicalUrl: f.canonicalUrl || undefined,
     isFeatured: Boolean(f.isFeatured), isBreaking: Boolean(f.isBreaking), aiAssisted: Boolean(f.aiAssisted),
   });
 
@@ -94,6 +104,30 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
 
   const next = f.id ? TRANSITIONS[status].filter((to) => canTransition(role, status, to)) : [];
   const youtubeId = f.youtubeUrl ? getYouTubeVideoId(f.youtubeUrl) : null;
+  const bodyText = articleText(f.content ?? '');
+  const wordCount = bodyText ? bodyText.match(/[\p{L}\p{N}]+(?:[-'’][\p{L}\p{N}]+)*/gu)?.length ?? 0 : 0;
+  const seoTitle = f.seoTitle?.trim() || f.title?.trim() || '';
+  const metaDescription = f.metaDescription?.trim() || f.excerpt?.trim() || '';
+  const focusKeyword = f.focusKeyword?.trim().toLocaleLowerCase() ?? '';
+  const containsFocusKeyword = (value: string) => Boolean(focusKeyword && value.toLocaleLowerCase().includes(focusKeyword));
+  const hasHeading = /<h[2-3]\b/i.test(f.content ?? '');
+  const hasInternalLink = [...(f.content ?? '').matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)]
+    .some(([, href]) => href!.startsWith('/') && !href!.startsWith('//') || /^https?:\/\/(?:www\.)?voxzin\.com(?:\/|$)/i.test(href!));
+  const checks = [
+    ...(focusKeyword ? [
+      { label: 'Use the focus phrase in the headline', ready: containsFocusKeyword(f.title ?? '') },
+      { label: 'Use the focus phrase in the SEO title', ready: containsFocusKeyword(seoTitle) },
+      { label: 'Use the focus phrase naturally in the article', ready: containsFocusKeyword(bodyText) },
+    ] : []),
+    { label: 'SEO title is no longer than 60 characters (a useful target)', ready: seoTitle.length > 0 && seoTitle.length <= 60 },
+    { label: 'Description is a useful length (120–160 characters is a guide)', ready: metaDescription.length >= 120 && metaDescription.length <= 160 },
+    { label: 'Article has a clear section heading (H2 or H3)', ready: hasHeading },
+    { label: 'Article has at least 300 words for a substantial story', ready: wordCount >= 300 },
+    { label: 'Link to a relevant VoxZin article where useful', ready: hasInternalLink },
+    { label: 'Add descriptive featured-image alt text', ready: Boolean(f.featuredImage?.url && f.featuredImage.alt.trim()) },
+    { label: 'Add at least one source', ready: parseSources(sourcesText).length > 0 },
+  ];
+  const readyChecks = checks.filter((check) => check.ready).length;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
@@ -203,21 +237,53 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
         </section>
 
         <section className={`${card} space-y-3`}>
-          <h2 className="font-semibold">Search appearance</h2>
+          <div>
+            <h2 className="font-semibold">SEO &amp; sharing</h2>
+            <p className="mt-1 text-xs text-muted">Make this story clear and useful for readers in search and when shared. These editorial checks are not a ranking score or guarantee.</p>
+          </div>
+          <div>
+            <label className={label} htmlFor="focus-keyword">Focus phrase (optional)</label>
+            <input id="focus-keyword" maxLength={80} className={input} value={f.focusKeyword ?? ''} onChange={(e) => set('focusKeyword', e.target.value)} placeholder="The main topic readers may search for" />
+            <p className="mt-1 text-xs text-muted">Use one natural phrase to guide the checks below. Avoid repeating it unnaturally.</p>
+          </div>
           <div>
             <label className={label} htmlFor="seot">SEO title</label>
             <input id="seot" maxLength={70} className={input} value={f.seoTitle ?? ''} onChange={(e) => set('seoTitle', e.target.value)} placeholder={f.title || 'Search result headline'} />
-            <p className="mt-1 text-xs text-muted">{(f.seoTitle || f.title || '').length}/70 characters · clear, accurate titles around 30–60 characters are a useful target.</p>
+            <p className="mt-1 text-xs text-muted">{(f.seoTitle || f.title || '').length}/70 characters · Google may rewrite titles; prioritize accuracy and clarity.</p>
           </div>
           <div>
             <label className={label} htmlFor="seod">Meta description</label>
             <textarea id="seod" rows={3} maxLength={170} className={input} value={f.metaDescription ?? ''} onChange={(e) => set('metaDescription', e.target.value)} placeholder={f.excerpt || 'Summarize what readers will learn'} />
-            <p className="mt-1 text-xs text-muted">{(f.metaDescription || f.excerpt || '').length}/170 characters · use a useful, specific summary; Google may choose a different snippet.</p>
+            <p className="mt-1 text-xs text-muted">{(f.metaDescription || f.excerpt || '').length}/170 characters · describe this story specifically; Google may show a different snippet.</p>
           </div>
-          <div className="rounded-md border border-line bg-white p-4 text-[#202124] shadow-sm">
+          <div aria-label="Search result preview" className="rounded-md border border-line bg-white p-4 text-[#202124] shadow-sm">
             <p className="text-xs text-[#5f6368]">voxzin.com › articles › {f.slug || 'article-url'}</p>
             <p className="mt-1 line-clamp-1 text-xl leading-snug text-[#1a0dab]">{f.seoTitle || f.title || 'Search result title'}</p>
             <p className="mt-1 line-clamp-2 text-sm text-[#4d5156]">{f.metaDescription || f.excerpt || 'A concise summary of this article will appear here.'}</p>
+          </div>
+          <div aria-label="Social sharing preview" className="overflow-hidden rounded-md border border-line">
+            {f.featuredImage?.url && <div className="relative aspect-[1.91/1] bg-bg"><Image src={f.featuredImage.url} alt="" fill sizes="(min-width: 1024px) 25vw, 100vw" className="object-cover" /></div>}
+            <div className="space-y-1 bg-bg p-3">
+              <p className="text-[11px] uppercase tracking-wide text-muted">voxzin.com</p>
+              <p className="line-clamp-2 text-sm font-semibold">{f.seoTitle || f.title || 'Story headline'}</p>
+              <p className="line-clamp-2 text-xs text-muted">{f.metaDescription || f.excerpt || 'Story summary shown when shared.'}</p>
+            </div>
+          </div>
+          <div className="rounded-md border border-line p-3">
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <h3 className="font-medium">Content readiness</h3>
+              <span className="text-muted">{readyChecks}/{checks.length} checks</span>
+            </div>
+            <ul className="mt-2 space-y-2 text-xs">
+              {checks.map((check) => (
+                <li key={check.label} className="flex items-start gap-2">
+                  <span aria-hidden="true" className={check.ready ? 'text-green-700 dark:text-green-400' : 'text-amber-700'}>{check.ready ? '✓' : '·'}</span>
+                  <span className={check.ready ? 'text-muted' : 'text-ink'}>{check.label}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-muted">{wordCount} words · {parseSources(sourcesText).length} source{parseSources(sourcesText).length === 1 ? '' : 's'}. Recommendations are guidance, not Google requirements.</p>
+            {!focusKeyword && <p className="mt-2 text-xs text-muted">Add a focus phrase above to enable topic-relevance checks.</p>}
           </div>
           {f.featuredImage?.url && !f.featuredImage.alt.trim() && <p className="text-xs text-amber-700">Add descriptive alt text to the featured image.</p>}
           <div>
