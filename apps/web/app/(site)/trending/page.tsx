@@ -11,7 +11,7 @@ export default async function TrendingPage() {
   const [topics, countries] = await Promise.all([getTrending('WW'), getCountries()]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <div className="mx-auto w-full px-4 py-10 sm:px-6">
       <h1 className="font-serif text-4xl font-semibold">Trending</h1>
       <p className="mt-2 max-w-2xl text-muted">Topics are automatically published across all regions. Any figures shown are reported by the original source; we don’t estimate them.</p>
 

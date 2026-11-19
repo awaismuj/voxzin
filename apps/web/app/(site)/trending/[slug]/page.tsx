@@ -27,7 +27,7 @@ export default async function TopicPage({ params, searchParams }: Props) {
   ]);
   const countryName = countries.find((country) => country.code === t.country)?.name ?? t.country;
   return (
-    <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <article className="mx-auto w-full px-4 py-10 sm:px-6">
       <Link href="/trending" className="text-sm font-semibold text-accent-ink hover:underline">Trending</Link>
       <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight">{t.title}</h1>
       <p className="mt-3 flex flex-wrap gap-x-4 text-sm text-muted">

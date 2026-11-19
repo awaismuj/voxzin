@@ -5,12 +5,12 @@ import { StoryMeta } from './story-meta';
 
 export function Hero({ lead }: { lead: ArticleSummary }) {
   return (
-    <section aria-label="Top story" className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
+    <section aria-label="Top story" className="mx-auto w-full px-4 pt-6 sm:px-6">
       <Link
         href={`/articles/${lead.slug}`}
         className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-xl"
       >
-        <StoryFrame image={lead.image} sizes="(min-width: 1024px) 62vw, 100vw" mode="natural" priority />
+        <StoryFrame image={lead.image} sizes="100vw" mode="natural" priority />
         <div className="flex flex-1 flex-col p-5 sm:p-7 lg:p-8">
           <span className="w-fit rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent-ink">
             {lead.category.name}

@@ -47,7 +47,7 @@ export function Nav({ items }: { items: { href: string; label: string }[] }) {
 
       {open && (
         <nav id="mobile-nav" aria-label="Main" className="absolute inset-x-0 top-full border-t border-white/10 bg-navy xl:hidden">
-          <ul className="mx-auto grid max-w-7xl grid-cols-2 gap-1 p-3 sm:grid-cols-3">
+          <ul className="mx-auto grid w-full grid-cols-2 gap-1 p-3 sm:grid-cols-3">
             {items.map((item) => (
               <li key={item.href}>
                 <Link

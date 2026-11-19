@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <article className="mx-auto w-full px-4 py-10 sm:px-6">
       <p className="text-sm font-semibold uppercase tracking-wide text-accent-ink">About us</p>
       <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight">The Voice of What's Trending.</h1>
       <div className="article-body mt-8">
