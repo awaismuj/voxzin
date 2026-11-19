@@ -1,6 +1,8 @@
 export * from './indexnow';
 import { z } from 'zod';
 
+export * from './security';
+
 export const ARTICLE_STATUSES = [
   'research',
   'idea',

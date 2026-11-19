@@ -13,6 +13,7 @@ No website is unhackable. This document says what is implemented, what is not, a
 - **Uploads:** 5 MB cap, type from magic bytes (PNG/JPEG/WebP/GIF only, no SVG), random filenames, served with `nosniff` and a sandbox CSP.
 - **Headers:** CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy, frame-ancestors none (web) plus Helmet (API).
 - **Audit log:** logins, MFA events, publishing, user and settings changes, uploads, AI use.
+- **Origin Guard:** Web requests and API requests are inspected for common secret-file, PHP scanner, and path-traversal probes; matching paths receive 403. API probes are recorded in a bounded in-memory event list, and five probes from one IP within 15 minutes temporarily block that IP from the API for 30 minutes. The admin-only Security dashboard shows process-local API counts and recent events; site-root blocks are not included in those API metrics.
 - **Containers:** non-root, read-only filesystem, all capabilities dropped, no-new-privileges, memory limits, Redis on an internal network.
 
 ## Known gaps (do before launch)
@@ -22,3 +23,4 @@ No website is unhackable. This document says what is implemented, what is not, a
 4. Cloudflare WAF, Turnstile on the newsletter form, bot rules and origin firewalling are configuration you must do (see DEPLOYMENT.md).
 5. Nothing here has been executed or penetration-tested. Run the CI scans and ZAP against staging first.
 6. Malware scanning of uploads is not implemented.
+7. Origin Guard is heuristic and process-local: it can miss attacks, can produce false positives, and its events/temporary blocks reset on API restart and are not shared across replicas. Keep Cloudflare WAF, rate limits, and origin firewalling enabled; confirm the reverse proxy passes the real client IP safely.
