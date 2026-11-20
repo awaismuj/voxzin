@@ -5,7 +5,7 @@ import { CategoryBar } from '@/components/category-bar';
 import { EmptyState } from '@/components/empty-state';
 import { Hero } from '@/components/hero';
 import { Ticker } from '@/components/ticker';
-import { getHome } from '@/lib/api';
+import { getHome, getHomepageFeedback } from '@/lib/api';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const feed = await getHome();
+  const [feed, communityFeedback] = await Promise.all([getHome(), getHomepageFeedback()]);
 
   if (!feed.hero) {
     return (
@@ -97,6 +97,31 @@ export default async function HomePage() {
               <ArticleCard key={a.id} article={a} />
             ))}
           </div>
+        </section>
+      )}
+      {communityFeedback.items.length > 0 && (
+        <section aria-labelledby="reader-feedback-heading" className="mx-auto mt-12 max-w-7xl px-4 pb-12 sm:px-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-accent-ink">From our readers</p>
+              <h2 id="reader-feedback-heading" className="section-title mt-1 text-2xl font-bold tracking-tight">The conversation</h2>
+            </div>
+          </div>
+          <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {communityFeedback.items.slice(0, 3).map((feedback) => (
+              <li key={feedback.id} className="flex flex-col rounded-xl border border-line bg-surface p-5 shadow-sm">
+                <blockquote className="line-clamp-5 flex-1 whitespace-pre-wrap text-sm leading-relaxed text-ink">
+                  “{feedback.message}”
+                </blockquote>
+                <div className="mt-4 border-t border-line pt-3">
+                  <p className="text-sm font-semibold">{feedback.name}</p>
+                  <Link href={`/articles/${feedback.article.slug}`} className="mt-1 block line-clamp-2 text-xs text-accent-ink hover:underline">
+                    On: {feedback.article.title}
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </>

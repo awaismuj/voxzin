@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArticleCard } from '@/components/article-card';
 import { ArticleBody } from '@/components/article-body';
+import { ArticleFeedback } from '@/components/article-feedback';
 import { StoryFrame } from '@/components/story-frame';
-import { ApiError, getArticle } from '@/lib/api';
+import { ApiError, getArticle, getArticleFeedback } from '@/lib/api';
 import { absoluteUrl, SITE_NAME, SITE_URL } from '@/lib/site';
 import { formatDate } from '@/lib/utils';
 import { getYouTubeVideoId } from '@voxzin/shared';
@@ -53,6 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ArticlePage({ params }: Props) {
   const a = await load((await params).slug);
+  const feedback = await getArticleFeedback(a.slug);
   const updated = formatDate(a.updatedAt) !== formatDate(a.publishedAt);
 
   const url = `${SITE_URL}/articles/${a.slug}`;
@@ -156,6 +158,8 @@ export default async function ArticlePage({ params }: Props) {
           </section>
         )}
       </div>
+
+      <ArticleFeedback slug={a.slug} initial={feedback} />
 
       {a.related.length > 0 && (
         <section aria-labelledby="related-heading" className="mt-16">

@@ -14,6 +14,8 @@ export const ARTICLE_STATUSES = [
   'archived',
 ] as const;
 export type ArticleStatus = (typeof ARTICLE_STATUSES)[number];
+export const ARTICLE_FEEDBACK_STATUSES = ['pending', 'approved'] as const;
+export type ArticleFeedbackStatus = (typeof ARTICLE_FEEDBACK_STATUSES)[number];
 
 /** Default content categories. /trending is a dashboard (Phase 5), not a category. */
 export const DEFAULT_CATEGORIES = [
@@ -84,6 +86,23 @@ export interface ArticleDetail extends ArticleSummary {
   sources: { title: string; url: string }[];
   related: ArticleSummary[];
   seo: { title: string; description: string; canonicalUrl: string | null };
+}
+
+export interface ArticleFeedbackDto {
+  id: string;
+  name: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface HomepageFeedbackDto extends ArticleFeedbackDto {
+  article: { title: string; slug: string };
+}
+
+export interface AdminArticleFeedbackDto extends ArticleFeedbackDto {
+  article: { title: string; slug: string } | null;
+  status: ArticleFeedbackStatus;
+  isActive: boolean;
 }
 
 export interface HomeFeed {
@@ -263,6 +282,29 @@ export const adminArticlesQuery = z.object({
   page: z.coerce.number().int().min(1).max(1000).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
+
+export const articleFeedbackInput = z.object({
+  name: z.string().trim().min(2).max(60),
+  message: z.string().trim().min(10).max(2000),
+});
+
+export const articleFeedbackListQuery = z.object({
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  limit: z.coerce.number().int().min(1).max(20).default(10),
+});
+
+export const adminArticleFeedbackQuery = z.object({
+  status: z.enum(ARTICLE_FEEDBACK_STATUSES).optional(),
+  active: z.enum(['active', 'inactive']).optional(),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(30),
+});
+
+export const articleFeedbackPatchInput = z.object({
+  status: z.enum(ARTICLE_FEEDBACK_STATUSES).optional(),
+  isActive: z.boolean().optional(),
+}).refine((value) => value.status !== undefined || value.isActive !== undefined);
+export type ArticleFeedbackPatchInput = z.infer<typeof articleFeedbackPatchInput>;
 
 export const categoryInput = z.object({
   name: z.string().trim().min(2).max(80),

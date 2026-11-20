@@ -1,5 +1,15 @@
 import { cache } from 'react';
-import type { ArticleDetail, ArticleSummary, CategoryDto, CountryDto, HomeFeed, Paginated, TrendTopicDto } from '@voxzin/shared';
+import type {
+  ArticleDetail,
+  ArticleFeedbackDto,
+  ArticleSummary,
+  CategoryDto,
+  CountryDto,
+  HomeFeed,
+  HomepageFeedbackDto,
+  Paginated,
+  TrendTopicDto,
+} from '@voxzin/shared';
 
 const API_URL = process.env.API_URL ?? 'http://127.0.0.1:4000/v1';
 
@@ -17,10 +27,13 @@ async function request<T>(path: string, revalidate: number | false = 60): Promis
 }
 
 export const getHome = () => request<HomeFeed>('/home');
+export const getHomepageFeedback = () => request<{ items: HomepageFeedbackDto[] }>('/feedback/home', 30);
 export const getCategories = () => request<CategoryDto[]>('/categories', 300);
 export const getCountries = () => request<CountryDto[]>('/countries', 300);
 export const getPublicSettings = () => request<{ brandName: string; tagline: string; contactEmail: string; social?: Record<string, string> }>('/settings', 300);
 export const getArticle = cache((slug: string) => request<ArticleDetail>(`/articles/${encodeURIComponent(slug)}`));
+export const getArticleFeedback = (slug: string, page = 1) =>
+  request<Paginated<ArticleFeedbackDto>>(`/articles/${encodeURIComponent(slug)}/feedback?page=${page}`, 30);
 export const getArticles = (params: { category?: string; page?: number }) => {
   const q = new URLSearchParams();
   if (params.category) q.set('category', params.category);

@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { articleInput, canTransition, categoryInput, countryCodeSchema, getYouTubeVideoId, listArticlesQuery, mediaListQuery, mediaMetadataInput, slugSchema, slugify } from './index';
+import {
+  articleFeedbackInput,
+  articleFeedbackListQuery,
+  articleFeedbackPatchInput,
+  articleInput,
+  canTransition,
+  categoryInput,
+  countryCodeSchema,
+  getYouTubeVideoId,
+  listArticlesQuery,
+  mediaListQuery,
+  mediaMetadataInput,
+  slugSchema,
+  slugify,
+} from './index';
 
 describe('slugSchema', () => {
   it('accepts normal slugs', () => expect(slugSchema.safeParse('internet-culture').success).toBe(true));
@@ -17,6 +31,23 @@ describe('listArticlesQuery', () => {
     expect(listArticlesQuery.safeParse({ category: { $ne: 'x' } }).success).toBe(false);
   });
   it('caps limit', () => expect(listArticlesQuery.safeParse({ limit: 500 }).success).toBe(false));
+});
+
+describe('article feedback validation', () => {
+  it('trims and bounds public submissions', () => {
+    expect(articleFeedbackInput.parse({ name: '  Sam  ', message: '  This article was useful.  ' })).toEqual({
+      name: 'Sam',
+      message: 'This article was useful.',
+    });
+    expect(articleFeedbackInput.safeParse({ name: 'S', message: 'short' }).success).toBe(false);
+    expect(articleFeedbackInput.safeParse({ name: 'Sam', message: 'x'.repeat(2001) }).success).toBe(false);
+  });
+
+  it('defaults public pagination and rejects empty moderation changes', () => {
+    expect(articleFeedbackListQuery.parse({})).toEqual({ page: 1, limit: 10 });
+    expect(articleFeedbackPatchInput.safeParse({}).success).toBe(false);
+    expect(articleFeedbackPatchInput.safeParse({ isActive: false }).success).toBe(true);
+  });
 });
 
 describe('admin catalogs', () => {

@@ -1,5 +1,5 @@
 import { Schema } from 'mongoose';
-import { ARTICLE_STATUSES, ROLES, TREND_STATUSES } from '@voxzin/shared';
+import { ARTICLE_FEEDBACK_STATUSES, ARTICLE_STATUSES, ROLES, TREND_STATUSES } from '@voxzin/shared';
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const oid = (ref: string, required = false) => ({ type: Schema.Types.ObjectId, ref, required });
@@ -77,6 +77,19 @@ ArticleSchema.index({ status: 1, scheduledAt: 1 });
 ArticleSchema.index({ createdBy: 1, updatedAt: -1 });
 ArticleSchema.index({ tags: 1 });
 ArticleSchema.index({ title: 'text', subtitle: 'text', excerpt: 'text' });
+
+export const ArticleFeedbackSchema = new Schema(
+  {
+    article: oid('Article', true),
+    name: { type: String, required: true, trim: true, maxlength: 60 },
+    message: { type: String, required: true, trim: true, maxlength: 2000 },
+    status: { type: String, enum: ARTICLE_FEEDBACK_STATUSES, default: 'pending' },
+    isActive: { type: Boolean, default: true },
+  },
+  { timestamps: true },
+);
+ArticleFeedbackSchema.index({ article: 1, status: 1, isActive: 1, createdAt: -1 });
+ArticleFeedbackSchema.index({ status: 1, isActive: 1, createdAt: -1 });
 
 export const UserSchema = new Schema(
   {
@@ -191,6 +204,7 @@ export const SiteSettingsSchema = new Schema(
 
 export const MODELS = {
   Article: ArticleSchema,
+  ArticleFeedback: ArticleFeedbackSchema,
   Category: CategorySchema,
   Country: CountrySchema,
   Author: AuthorSchema,
