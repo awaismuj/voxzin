@@ -66,9 +66,17 @@ services:
     image: voxzin-worker:${IMAGE_TAG:-latest}
     pull_policy: never
     env_file: .env.production
-    depends_on: [redis]
+    depends_on:
+      redis:
+        condition: service_healthy
     networks: [app, data]
     mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "node", "-e", "try { const ts = Number(require('node:fs').readFileSync('/tmp/worker-ready', 'utf8')); process.exit(Number.isFinite(ts) && Date.now() - ts < 30000 ? 0 : 1); } catch { process.exit(1); }"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   redis:
     <<: *hardened
@@ -77,11 +85,13 @@ services:
     volumes: ["redis-data:/data"]
     networks: [data]
     mem_limit: 256m
+    cap_add: [CHOWN, DAC_OVERRIDE, SETUID, SETGID]
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 30s
     environment: { REDIS_PASSWORD: "${REDIS_PASSWORD}" }
 
 networks:

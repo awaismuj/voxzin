@@ -37,8 +37,14 @@ function createSmtpTransport() {
 
 const transport = createSmtpTransport();
 const siteUrl = env.SITE_URL.replace(/\/+$/, '');
+const newsletterFrom = env.NEWSLETTER_FROM ?? env.SMTP_FROM;
+export const isNewsletterEmailReady = () => Boolean(transport && newsletterFrom);
+
 export async function processNewsletterCampaigns(log: Logger) {
-  if (!transport || !env.SMTP_FROM) return;
+  if (!transport || !newsletterFrom) {
+    log.error({ smtpConfigured: Boolean(transport), senderConfigured: Boolean(newsletterFrom) }, 'newsletter sending is not configured in the worker');
+    return;
+  }
 
   const staleBefore = new Date(Date.now() - 15 * 60_000);
   await Campaign.updateMany(
@@ -114,7 +120,7 @@ export async function processNewsletterCampaigns(log: Logger) {
 
       try {
         await transport.sendMail({
-          from: env.SMTP_FROM,
+          from: newsletterFrom,
           replyTo: env.NEWSLETTER_REPLY_TO,
           to: delivery.email,
           subject: campaign.subject || message.subject,

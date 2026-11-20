@@ -25,6 +25,7 @@ export const env = z
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
     SMTP_FROM: z.string().trim().min(1).optional(),
+    NEWSLETTER_FROM: z.string().trim().min(1).optional(),
     NEWSLETTER_REPLY_TO: z.string().trim().email().default('newsletter@voxzin.com'),
     NEWSLETTER_DAILY_LIMIT: z.coerce.number().int().min(1).max(300).default(250),
     // Set to false to switch the Google Trends provider off (e.g. if your legal review says to).

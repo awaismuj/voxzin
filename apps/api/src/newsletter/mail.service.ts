@@ -28,7 +28,7 @@ export class MailService {
   }
 
   get isNewsletterConfigured() {
-    return Boolean(this.transport && env.SMTP_FROM);
+    return Boolean(this.transport && (env.NEWSLETTER_FROM || env.SMTP_FROM));
   }
 
   async send(to: string, subject: string, text: string) {

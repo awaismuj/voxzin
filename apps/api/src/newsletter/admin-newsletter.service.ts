@@ -61,7 +61,7 @@ export class AdminNewsletterService {
     const quota = await this.quotas.findOne({ day: utcDay() }).select('reserved').lean<{ reserved: number }>();
     return {
       ready: this.mail.isNewsletterConfigured,
-      sender: this.mail.isNewsletterConfigured ? env.SMTP_FROM : null,
+      sender: this.mail.isNewsletterConfigured ? env.NEWSLETTER_FROM ?? env.SMTP_FROM ?? null : null,
       dailyLimit: env.NEWSLETTER_DAILY_LIMIT,
       dailyUsed: quota?.reserved ?? 0,
     };
