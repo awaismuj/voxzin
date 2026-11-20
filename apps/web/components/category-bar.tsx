@@ -18,7 +18,7 @@ const ICONS: Record<string, LucideIcon> = {
 export async function CategoryBar() {
   const categories = await getCategories();
   return (
-    <nav aria-label="Browse sections" className="mt-8 w-full px-4 sm:px-6 lg:px-8">
+    <nav aria-label="Browse sections" className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
       <ul className="flex gap-2 overflow-x-auto rounded-xl bg-navy p-2">
         {uniqueCategories(categories).map((c) => {
           const Icon = ICONS[c.slug] ?? Globe;

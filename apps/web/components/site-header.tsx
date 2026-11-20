@@ -11,7 +11,7 @@ export async function SiteHeader() {
   const items = buildNavItems(categories);
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-navy/95 text-white backdrop-blur supports-[backdrop-filter]:bg-navy/85">
-      <div className="relative flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <BrandLogo tagline className="text-white" />
         <div className="flex min-w-0 flex-1 items-center justify-end gap-1">
           <Nav items={items} />
