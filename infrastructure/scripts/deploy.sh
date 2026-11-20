@@ -4,8 +4,6 @@
 set -euo pipefail
 NEW="${IMAGE_TAG:?set IMAGE_TAG}"
 PREV="$(cat .deployed-tag 2>/dev/null || true)"
-NGINX_CERT_GID="${NGINX_CERT_GID:-$(stat -c '%g' infrastructure/nginx/certs/origin.key)}"
-export NGINX_CERT_GID
 
 compose() {
   docker compose -p strongpassweb -f docker-compose.prod.yml "$@"
@@ -13,23 +11,6 @@ compose() {
 
 start_app() {
   compose up -d --remove-orphans api worker web
-}
-
-refresh_nginx() {
-  local nginx running
-  nginx="$(compose ps -q nginx)" || return 1
-  if [ -n "$nginx" ]; then
-    running="$(docker inspect --format '{{.State.Running}}' "$nginx")" || return 1
-  else
-    running=false
-  fi
-
-  if [ "$running" = true ]; then
-    compose exec -T nginx nginx -t || return 1
-    compose exec -T nginx nginx -s reload || return 1
-  else
-    compose up -d nginx || return 1
-  fi
 }
 
 healthy() {
@@ -48,10 +29,10 @@ rollback() {
   fi
 
   export IMAGE_TAG="$PREV"
-  if start_app && refresh_nginx && healthy; then
+  if start_app && healthy; then
     echo "Rolled back to $PREV" >&2
   else
-    echo "Rollback to $PREV failed. Check app and Nginx container status." >&2
+    echo "Rollback to $PREV failed. Check app container status." >&2
     return 1
   fi
 }
@@ -75,12 +56,6 @@ report_health_failure() {
   done
   compose logs --no-color --tail=80 api web >&2 || true
 }
-
-if ! refresh_nginx; then
-  echo "Could not validate or reload Nginx for deployment $NEW; attempting rollback." >&2
-  rollback || true
-  exit 1
-fi
 
 if healthy; then echo "$NEW" > .deployed-tag; echo "Deployed $NEW"; exit 0; fi
 echo "Health check failed for $NEW" >&2

@@ -1,5 +1,5 @@
 # Production stack. MongoDB is expected to be managed/private (set MONGODB_URI in .env.production).
-# Public traffic: Cloudflare -> nginx (80/443) -> web -> api. Only nginx publishes ports.
+# Public traffic: Cloudflare -> host Nginx (80/443) -> web on 127.0.0.1:13006 -> api.
 name: strongpassweb
 
 x-hardened: &hardened
@@ -10,22 +10,6 @@ x-hardened: &hardened
   security_opt: ["no-new-privileges:true"]
 
 services:
-  nginx:
-    <<: *hardened
-    image: nginx:1.27-alpine
-    group_add: ["${NGINX_CERT_GID:?NGINX_CERT_GID must be set by the deployment script}"]
-    ports: ["80:80", "443:443"]
-    volumes:
-      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./infrastructure/nginx/proxy-common.conf:/etc/nginx/proxy-common.conf:ro
-      - ./infrastructure/nginx/cloudflare-ips.conf:/etc/nginx/cloudflare-ips.conf:ro
-      - ./infrastructure/nginx/certs:/etc/nginx/certs:ro
-    tmpfs: ["/tmp", "/var/cache/nginx", "/var/run"]
-    cap_add: [NET_BIND_SERVICE, CHOWN, SETUID, SETGID]
-    depends_on: [web]
-    networks: [edge]
-    mem_limit: 256m
-
   web:
     <<: *hardened
     image: voxzin-web:${IMAGE_TAG:-latest}
@@ -37,7 +21,7 @@ services:
       - "127.0.0.1:13006:3000"
     tmpfs: ["/tmp", "/app/apps/web/.next/cache"]
     depends_on: [api]
-    networks: [edge, app]
+    networks: [app]
     mem_limit: 768m
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/robots.txt').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -101,7 +85,6 @@ services:
     environment: { REDIS_PASSWORD: "${REDIS_PASSWORD}" }
 
 networks:
-  edge: {}
   app: {}
   data: { internal: true }   # Redis is unreachable from outside the stack
 

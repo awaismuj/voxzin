@@ -5,7 +5,6 @@ cd "$(dirname "$0")/../.."
 : "${IMAGE_TAG:?IMAGE_TAG is required}"
 
 [ -f .env.production ] || { echo "Missing .env.production" >&2; exit 1; }
-[ -f infrastructure/nginx/certs/origin.pem ] || { echo "Missing infrastructure/nginx/certs/origin.pem" >&2; exit 1; }
 ln -sf .env.production .env                      # docker compose reads .env for ${REDIS_PASSWORD}
 
 # Keep the active release and running images for rollback, but discard older releases and
