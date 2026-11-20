@@ -7,8 +7,8 @@ cd "$(dirname "$0")/../.."
 [ -f .env.production ] || { echo "Missing .env.production" >&2; exit 1; }
 ln -sf .env.production .env                      # docker compose reads .env for ${REDIS_PASSWORD}
 
-# Keep the active release and running images for rollback, but discard older releases and
-# build cache before compiling to prevent repeated deployments filling the Docker filesystem.
+# Keep the active release and running images for rollback, and retain the build cache so
+# dependency installation can be reused between deployments.
 PREV_TAG="$(cat .deployed-tag 2>/dev/null || true)"
 REFERENCED_IMAGES="$(docker ps -a --format '{{.Image}}')"
 while IFS= read -r image; do
@@ -22,8 +22,6 @@ while IFS= read -r image; do
       ;;
   esac
 done < <(docker image ls --format '{{.Repository}}:{{.Tag}}')
-docker image prune -f
-docker builder prune -af
 
 # Reuse the existing Compose project so services and volumes are updated in place.
 # Avoid unexpected pulls when images have just been built locally on the host.
@@ -37,4 +35,3 @@ for t in api worker web; do
 done
 
 bash infrastructure/scripts/deploy.sh            # starts the new tag; rolls back if health checks fail
-docker image prune -f >/dev/null                 # remove dangling layers

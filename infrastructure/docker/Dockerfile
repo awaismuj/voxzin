@@ -4,13 +4,19 @@
 FROM node:22-alpine AS build
 RUN corepack enable
 WORKDIR /repo
+ENV CI=true
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY apps/worker/package.json apps/worker/package.json
+COPY packages/database/package.json packages/database/package.json
+COPY packages/shared/package.json packages/shared/package.json
+RUN pnpm install --frozen-lockfile
+COPY . .
 ARG API_URL=http://api:4000/v1
 ARG NEXT_PUBLIC_SITE_URL=https://voxzin.com
 ARG MEDIA_HOSTNAME=
 ENV API_URL=$API_URL NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL MEDIA_HOSTNAME=$MEDIA_HOSTNAME NEXT_TELEMETRY_DISABLED=1
-COPY . .
-ENV CI=true
-RUN pnpm install --frozen-lockfile
 RUN pnpm turbo run build --concurrency=1
 RUN pnpm --filter @voxzin/api deploy --prod /out/api && pnpm --filter @voxzin/worker deploy --prod /out/worker
 
