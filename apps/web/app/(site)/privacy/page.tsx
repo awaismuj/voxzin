@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <p className="text-sm font-semibold uppercase tracking-wide text-accent-ink">Legal</p>
       <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight">Privacy Policy</h1>
-      <p className="mt-3 text-sm text-muted">Effective date: November 17, 2026</p>
+      <p className="mt-3 text-sm text-muted">Effective date: November 20, 2026</p>
       <div className="article-body mt-8">
         <p>
           This notice describes how VoxZin handles information when you visit voxzin.com, subscribe to our newsletter, or use an authorized administration account. It is intended to explain the site&apos;s current practices; the identity of the legal operator and any rights that apply depend on where the operator and reader are located.
@@ -21,7 +21,7 @@ export default function PrivacyPolicyPage() {
 
         <h2>Information we handle</h2>
         <ul>
-          <li><strong>Newsletter:</strong> If you subscribe, we process your email address and subscription status. We send a confirmation message before adding you to the confirmed mailing list. You can unsubscribe using the unsubscribe link or contact us.</li>
+          <li><strong>Newsletter:</strong> If you subscribe, we process your email address and subscription status. We send a confirmation message before adding you to the confirmed mailing list. If subscribed, you may receive article newsletters. Each newsletter includes an unsubscribe link, and we retain your subscription choice to honor it.</li>
           <li><strong>Administration and security:</strong> If you have an authorized account, we process account details and authentication information. The site uses an essential, HTTP-only session cookie for sign-in. Authentication and security records may include IP address, browser user-agent, session expiry and administrative actions.</li>
           <li><strong>Media and editorial operations:</strong> Images and descriptions submitted by authorized editors may be stored and displayed as part of published content.</li>
           <li><strong>Technical information:</strong> The website host, content-delivery network and security services may process request and device information, such as IP address, browser details and access times, to deliver and protect the site.</li>
@@ -50,7 +50,7 @@ export default function PrivacyPolicyPage() {
 
         <h2>Service providers and retention</h2>
         <p>
-          Information may be processed by providers that host the site or database, deliver email, provide CDN or security services, or support authorized site operations. We do not sell personal information. We retain information for as long as needed for the purposes above, to maintain subscription choices and security records, and to meet applicable legal obligations. Retention periods may differ by record type.
+          Information may be processed by providers that host the site or database, deliver email campaigns and confirmations, provide CDN or security services, or support authorized site operations. We do not sell personal information. We retain information for as long as needed for the purposes above, to maintain subscription choices and security records, and to meet applicable legal obligations. Retention periods may differ by record type.
         </p>
 
         <h2>Choices and privacy requests</h2>

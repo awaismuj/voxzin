@@ -26,6 +26,8 @@ import { HealthController } from './health/health.controller';
 import { MediaController } from './media/media.controller';
 import { MailService } from './newsletter/mail.service';
 import { NewsletterController } from './newsletter/newsletter.controller';
+import { AdminNewsletterController } from './newsletter/admin-newsletter.controller';
+import { AdminNewsletterService } from './newsletter/admin-newsletter.service';
 import { SiteController } from './site/site.controller';
 import { OriginInspectionGuard } from './security/origin-inspection.guard';
 import { OriginGuardService } from './security/origin-guard.service';
@@ -42,12 +44,12 @@ import { TrendingService } from './trending/trending.service';
   controllers: [
     ArticlesController, CategoriesController, HealthController, AuthController, AdminArticlesController,
     CatalogController, AiController, MediaController, TrendingController, TrendingAdminController,
-    NewsletterController, SiteController, CountriesController, SecurityController,
+    NewsletterController, AdminNewsletterController, SiteController, CountriesController, SecurityController,
     ArticleFeedbackController, AdminFeedbackController,
   ],
   providers: [
     ArticlesService, CategoriesService, AuthService, AuditService, AdminArticlesService, CatalogService,
-    AiService, TrendingService, FeedbackService, MailService, SessionGuard, RolesGuard, AdminBootstrapService, IndexNowService,
+    AiService, TrendingService, FeedbackService, AdminNewsletterService, MailService, SessionGuard, RolesGuard, AdminBootstrapService, IndexNowService,
     OriginGuardService, OriginInspectionGuard,
     { provide: APP_GUARD, useClass: OriginInspectionGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },

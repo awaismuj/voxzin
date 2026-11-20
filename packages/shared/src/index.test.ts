@@ -4,6 +4,8 @@ import {
   articleFeedbackListQuery,
   articleFeedbackPatchInput,
   articleInput,
+  adminNewsletterCampaignInput,
+  adminNewsletterSubscribersQuery,
   canTransition,
   categoryInput,
   countryCodeSchema,
@@ -11,6 +13,7 @@ import {
   listArticlesQuery,
   mediaListQuery,
   mediaMetadataInput,
+  newsletterOneClickInput,
   slugSchema,
   slugify,
 } from './index';
@@ -47,6 +50,24 @@ describe('article feedback validation', () => {
     expect(articleFeedbackListQuery.parse({})).toEqual({ page: 1, limit: 10 });
     expect(articleFeedbackPatchInput.safeParse({}).success).toBe(false);
     expect(articleFeedbackPatchInput.safeParse({ isActive: false }).success).toBe(true);
+  });
+});
+
+describe('admin newsletter input', () => {
+  it('limits recipient selections to unique valid subscriber IDs', () => {
+    const articleId = 'a'.repeat(24);
+    const subscriberId = 'b'.repeat(24);
+    expect(adminNewsletterCampaignInput.safeParse({ articleId, subscriberIds: [subscriberId] }).success).toBe(true);
+    expect(adminNewsletterCampaignInput.safeParse({ articleId, subscriberIds: [subscriberId, subscriberId] }).success).toBe(false);
+    expect(adminNewsletterCampaignInput.safeParse({ articleId, subscriberIds: ['someone@example.com'] }).success).toBe(false);
+  });
+
+  it('validates subscriber search and pagination', () => {
+    expect(adminNewsletterSubscribersQuery.parse({}).limit).toBe(20);
+    expect(adminNewsletterSubscribersQuery.safeParse({ q: { $ne: '' } }).success).toBe(false);
+    expect(adminNewsletterSubscribersQuery.safeParse({ limit: 500 }).success).toBe(false);
+    expect(newsletterOneClickInput.safeParse({ 'List-Unsubscribe': 'One-Click' }).success).toBe(true);
+    expect(newsletterOneClickInput.safeParse({ 'List-Unsubscribe': 'subscribe' }).success).toBe(false);
   });
 });
 

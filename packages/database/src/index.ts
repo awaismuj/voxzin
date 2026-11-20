@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose';
+import { Schema, type Model } from 'mongoose';
 import { ARTICLE_FEEDBACK_STATUSES, ARTICLE_STATUSES, ROLES, TREND_STATUSES } from '@voxzin/shared';
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -177,6 +177,49 @@ export const NewsletterSubscriberSchema = new Schema(
   { timestamps: true },
 );
 
+export const NewsletterCampaignSchema = new Schema(
+  {
+    article: oid('Article', true),
+    subject: { type: String, required: true, trim: true, maxlength: 200 },
+    status: { type: String, enum: ['draft', 'queued', 'sending', 'completed'], default: 'draft' },
+    totalRecipients: { type: Number, required: true, min: 1 },
+    sentCount: { type: Number, default: 0, min: 0 },
+    failedCount: { type: Number, default: 0, min: 0 },
+    skippedCount: { type: Number, default: 0, min: 0 },
+    createdBy: oid('User', true),
+    completedAt: Date,
+  },
+  { timestamps: true },
+);
+NewsletterCampaignSchema.index({ createdAt: -1 });
+NewsletterCampaignSchema.index({ status: 1, createdAt: 1 });
+
+export const NewsletterDeliverySchema = new Schema(
+  {
+    campaign: oid('NewsletterCampaign', true),
+    subscriber: oid('NewsletterSubscriber', true),
+    email: { type: String, required: true, lowercase: true, maxlength: 254 },
+    unsubscribeToken: { type: String, required: true, select: false },
+    status: { type: String, enum: ['pending', 'sending', 'sent', 'failed', 'skipped'], default: 'pending' },
+    error: { type: String, maxlength: 300 },
+    attemptedAt: Date,
+    sentAt: Date,
+  },
+  { timestamps: true },
+);
+NewsletterDeliverySchema.index({ campaign: 1, subscriber: 1 }, { unique: true });
+NewsletterDeliverySchema.index({ campaign: 1, status: 1, createdAt: 1 });
+NewsletterDeliverySchema.index({ attemptedAt: 1 });
+NewsletterDeliverySchema.index({ status: 1, sentAt: 1 });
+
+export const NewsletterQuotaSchema = new Schema(
+  {
+    day: { type: String, required: true, unique: true, match: /^\d{4}-\d{2}-\d{2}$/ },
+    reserved: { type: Number, required: true, default: 0, min: 0 },
+  },
+  { timestamps: true },
+);
+
 export const MediaSchema = new Schema(
   {
     filename: { type: String, required: true, unique: true },
@@ -213,6 +256,33 @@ export const MODELS = {
   AuditLog: AuditLogSchema,
   TrendingTopic: TrendingTopicSchema,
   NewsletterSubscriber: NewsletterSubscriberSchema,
+  NewsletterCampaign: NewsletterCampaignSchema,
+  NewsletterDelivery: NewsletterDeliverySchema,
+  NewsletterQuota: NewsletterQuotaSchema,
   Media: MediaSchema,
   SiteSettings: SiteSettingsSchema,
 } as const;
+
+export interface NewsletterQuotaRecord {
+  day: string;
+  reserved: number;
+}
+
+export async function reserveNewsletterQuota(
+  quota: Model<NewsletterQuotaRecord>,
+  dailyLimit: number,
+  now = new Date(),
+) {
+  const day = now.toISOString().slice(0, 10);
+  try {
+    await quota.updateOne({ day }, { $setOnInsert: { day, reserved: 0 } }, { upsert: true });
+  } catch (error) {
+    if (!(typeof error === 'object' && error !== null && 'code' in error && error.code === 11000)) throw error;
+  }
+  const reservation = await quota.findOneAndUpdate(
+    { day, reserved: { $lt: dailyLimit } },
+    { $inc: { reserved: 1 } },
+    { new: true },
+  ).select('reserved').lean<{ reserved: number }>();
+  return reservation !== null;
+}

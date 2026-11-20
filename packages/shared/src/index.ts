@@ -130,6 +130,34 @@ export interface Paginated<T> {
   totalPages: number;
 }
 
+export interface AdminNewsletterArticle {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  image: { url: string; alt: string } | null;
+  publishedAt: string;
+}
+
+export interface AdminNewsletterSubscriber {
+  id: string;
+  email: string;
+  confirmedAt: string | null;
+}
+
+export interface AdminNewsletterCampaign {
+  id: string;
+  article: { title: string; slug: string };
+  subject: string;
+  status: 'draft' | 'queued' | 'sending' | 'completed';
+  totalRecipients: number;
+  sentCount: number;
+  failedCount: number;
+  skippedCount: number;
+  createdAt: string;
+  completedAt: string | null;
+}
+
 // ---------------------------------------------------------------- roles & workflow
 export const ROLES = ['super_admin', 'admin', 'editor', 'author'] as const;
 export type Role = (typeof ROLES)[number];
@@ -399,6 +427,19 @@ export type TrendPatchInput = z.infer<typeof trendPatchInput>;
 
 export const newsletterInput = z.object({ email: emailSchema });
 export const newsletterTokenInput = z.object({ email: emailSchema, token: z.string().regex(/^[a-f0-9]{64}$/) });
+export const newsletterOneClickInput = z.object({ 'List-Unsubscribe': z.literal('One-Click') });
+export const adminNewsletterSubscribersQuery = z.object({
+  q: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export const adminNewsletterCampaignInput = z.object({
+  articleId: objectIdSchema,
+  subscriberIds: z.array(objectIdSchema).min(1).max(3000),
+}).refine(({ subscriberIds }) => new Set(subscriberIds).size === subscriberIds.length, {
+  path: ['subscriberIds'],
+  message: 'Select each subscriber only once',
+});
 export const aiAssistInput = z.object({
   task: z.enum(['headlines', 'outline', 'summary', 'seo', 'readability']),
   text: z.string().trim().min(20).max(20_000),

@@ -24,6 +24,8 @@ export class SessionGuard implements CanActivate {
 }
 
 export const Roles = (...roles: Role[]) => SetMetadata('roles', roles);
+const SIGNED_ONE_CLICK_UNSUBSCRIBE = 'signed_one_click_unsubscribe';
+export const AllowSignedOneClickUnsubscribe = () => SetMetadata(SIGNED_ONE_CLICK_UNSUBSCRIBE, true);
 
 /** Server-side RBAC plus mandatory MFA for privileged roles. Use after SessionGuard. */
 @Injectable()
@@ -41,8 +43,12 @@ export class RolesGuard implements CanActivate {
 /** CSRF defence for cookie auth: state-changing requests must come from an allowed origin. */
 @Injectable()
 export class OriginGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
   canActivate(ctx: ExecutionContext) {
     const req = ctx.switchToHttp().getRequest<Request>();
+    const signedUnsubscribe = this.reflector.getAllAndOverride<boolean>(SIGNED_ONE_CLICK_UNSUBSCRIBE, [ctx.getHandler()]);
+    if (signedUnsubscribe && req.method === 'POST') return true;
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return true;
     let origin = req.headers.origin;
     if (!origin && req.headers.referer) {

@@ -13,6 +13,7 @@ async function bootstrap() {
   app.use(helmet());
   app.use(cookieParser());
   app.useBodyParser('json', { limit: '100kb' });
+  app.useBodyParser('urlencoded', { extended: false, limit: '1kb' });
   app.setGlobalPrefix('v1');
   app.enableCors({ origin: env.CORS_ORIGINS, credentials: true, methods: ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE'], maxAge: 600 });
   app.enableShutdownHooks();

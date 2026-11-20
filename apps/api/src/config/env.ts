@@ -30,6 +30,8 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().trim().min(1).optional(),
+  NEWSLETTER_REPLY_TO: z.string().trim().email().default('newsletter@voxzin.com'),
+  NEWSLETTER_DAILY_LIMIT: z.coerce.number().int().min(1).max(300).default(250),
   MAIL_FROM: z.string().default('VoxZin <no-reply@voxzin.com>'),
   // IndexNow key (hex, 32-64 chars; make one with: openssl rand -hex 16). When set, search engines are told about new and
   // changed articles right away. The site serves the key file at /<key>.txt.

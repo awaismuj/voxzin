@@ -1,13 +1,14 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Query } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Throttle } from '@nestjs/throttler';
-import { newsletterInput, newsletterTokenInput } from '@voxzin/shared';
+import { newsletterInput, newsletterOneClickInput, newsletterTokenInput } from '@voxzin/shared';
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 import { hmac, safeEqual } from '../common/crypto';
 import type { M } from '../common/types';
 import { ZodPipe } from '../common/zod.pipe';
 import { env } from '../config/env';
+import { AllowSignedOneClickUnsubscribe } from '../auth/guards';
 import { MailService } from './mail.service';
 
 const token = (purpose: 'confirm' | 'unsubscribe', email: string) => hmac(`${purpose}:${email}`);
@@ -42,6 +43,22 @@ export class NewsletterController {
   @HttpCode(204)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async unsubscribe(@Body(new ZodPipe(newsletterTokenInput)) b: z.infer<typeof newsletterTokenInput>) {
+    await this.unsubscribeWithToken(b);
+  }
+
+  @Post('unsubscribe-one-click')
+  @HttpCode(204)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @AllowSignedOneClickUnsubscribe()
+  async unsubscribeOneClick(
+    @Query(new ZodPipe(newsletterTokenInput)) b: z.infer<typeof newsletterTokenInput>,
+    @Body(new ZodPipe(newsletterOneClickInput)) body: z.infer<typeof newsletterOneClickInput>,
+  ) {
+    if (body['List-Unsubscribe'] !== 'One-Click') throw new BadRequestException('Invalid one-click unsubscribe request');
+    await this.unsubscribeWithToken(b);
+  }
+
+  private async unsubscribeWithToken(b: z.infer<typeof newsletterTokenInput>) {
     if (!safeEqual(b.token, token('unsubscribe', b.email))) throw new BadRequestException('This unsubscribe link is not valid');
     await this.subs.updateOne({ email: b.email }, { $set: { status: 'unsubscribed' } });
   }
