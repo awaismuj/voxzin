@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import {
-  adminArticlesQuery, articleInput, articlePatchInput, objectIdSchema, transitionInput,
+  adminArticleTagSuggestionsQuery, adminArticlesQuery, articleInput, articlePatchInput, objectIdSchema, transitionInput,
   type ArticleInput, type ArticlePatchInput, type ArticleStatus,
 } from '@voxzin/shared';
 import { z } from 'zod';
@@ -20,6 +20,11 @@ export class AdminArticlesController {
   @Get()
   list(@Req() req: AuthedRequest, @Query(new ZodPipe(adminArticlesQuery)) q: z.infer<typeof adminArticlesQuery>) {
     return this.service.list(req.auth.user, q);
+  }
+
+  @Get('tag-suggestions')
+  tagSuggestions(@Query(new ZodPipe(adminArticleTagSuggestionsQuery)) q: z.infer<typeof adminArticleTagSuggestionsQuery>) {
+    return this.service.suggestTags(q.q);
   }
 
   @Get(':id')

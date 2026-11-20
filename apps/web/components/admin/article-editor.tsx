@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { canTransition, getYouTubeVideoId, TRANSITIONS, type ArticleStatus, type Role } from '@voxzin/shared';
 import { adminFetch } from '@/lib/admin-client';
+import { StoryFrame } from '@/components/story-frame';
 import { RichEditor } from './rich-editor';
 import { MediaPicker } from './media-picker';
 import { btn, btnGhost, card, input, label } from './ui';
@@ -17,6 +18,7 @@ export interface ArticleDoc {
   status?: ArticleStatus; slug?: string; aiAssisted?: boolean;
 }
 type Opt = { _id: string; name: string };
+type TagSuggestion = { tag: string; topic: string; updatedAt: string; trendMetric: string | null };
 
 const parseSources = (text: string) =>
   text.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
@@ -47,6 +49,9 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   const [when, setWhen] = useState('');
   const [aiTask, setAiTask] = useState<'headlines' | 'outline' | 'summary' | 'seo' | 'readability'>('headlines');
   const [aiOut, setAiOut] = useState('');
+  const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[]>([]);
+  const [tagSuggestionsBusy, setTagSuggestionsBusy] = useState(false);
+  const [tagSuggestionsMessage, setTagSuggestionsMessage] = useState<{ kind: 'status' | 'error'; text: string } | null>(null);
   const set = <K extends keyof ArticleDoc>(k: K, v: ArticleDoc[K]) => setF((p) => ({ ...p, [k]: v }));
   const status = f.status ?? 'draft';
   const isAuthor = role === 'author';
@@ -105,6 +110,9 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   const next = f.id ? TRANSITIONS[status].filter((to) => canTransition(role, status, to)) : [];
   const youtubeId = f.youtubeUrl ? getYouTubeVideoId(f.youtubeUrl) : null;
   const bodyText = articleText(f.content ?? '');
+  const tagQuery = [f.title, f.excerpt, bodyText].filter(Boolean).join(' ').slice(0, 2000);
+  const selectedTagKeys = new Set(tagsText.split(',').map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean));
+  const visibleTagSuggestions = tagSuggestions.filter((suggestion) => !selectedTagKeys.has(suggestion.tag.toLocaleLowerCase()));
   const wordCount = bodyText ? bodyText.match(/[\p{L}\p{N}]+(?:[-'’][\p{L}\p{N}]+)*/gu)?.length ?? 0 : 0;
   const seoTitle = f.seoTitle?.trim() || f.title?.trim() || '';
   const metaDescription = f.metaDescription?.trim() || f.excerpt?.trim() || '';
@@ -113,10 +121,12 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   const hasHeading = /<h[2-3]\b/i.test(f.content ?? '');
   const hasInternalLink = [...(f.content ?? '').matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)]
     .some(([, href]) => href!.startsWith('/') && !href!.startsWith('//') || /^https?:\/\/(?:www\.)?voxzin\.com(?:\/|$)/i.test(href!));
+  const openingParagraph = articleText((f.content ?? '').match(/<p\b[^>]*>[\s\S]*?<\/p>/i)?.[0] ?? '');
   const checks = [
     ...(focusKeyword ? [
       { label: 'Use the focus phrase in the headline', ready: containsFocusKeyword(f.title ?? '') },
       { label: 'Use the focus phrase in the SEO title', ready: containsFocusKeyword(seoTitle) },
+      { label: 'Use the focus phrase naturally in the opening paragraph', ready: containsFocusKeyword(openingParagraph) },
       { label: 'Use the focus phrase naturally in the article', ready: containsFocusKeyword(bodyText) },
     ] : []),
     { label: 'SEO title is no longer than 60 characters (a useful target)', ready: seoTitle.length > 0 && seoTitle.length <= 60 },
@@ -128,6 +138,40 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     { label: 'Add at least one source', ready: parseSources(sourcesText).length > 0 },
   ];
   const readyChecks = checks.filter((check) => check.ready).length;
+
+  async function suggestTags() {
+    if (tagQuery.trim().length < 20) {
+      setTagSuggestions([]);
+      setTagSuggestionsMessage({ kind: 'status', text: 'Add a headline and more article text to get relevant suggestions.' });
+      return;
+    }
+    setTagSuggestionsBusy(true);
+    setTagSuggestions([]);
+    setTagSuggestionsMessage(null);
+    try {
+      const query = new URLSearchParams({ q: tagQuery });
+      const result = await adminFetch<{ items: TagSuggestion[] }>(`/admin/articles/tag-suggestions?${query}`);
+      setTagSuggestions(result.items);
+      if (result.items.length === 0) {
+        setTagSuggestionsMessage({ kind: 'status', text: 'No matching approved trends from the last 30 days. Add tags manually if they help readers.' });
+      }
+    } catch (e) {
+      setTagSuggestionsMessage({ kind: 'error', text: e instanceof Error ? e.message : 'Could not load trending tag suggestions.' });
+    } finally {
+      setTagSuggestionsBusy(false);
+    }
+  }
+
+  function addTagSuggestion(tag: string) {
+    const selected = tagsText.split(',').map((value) => value.trim()).filter(Boolean);
+    if (selected.some((value) => value.toLocaleLowerCase() === tag.toLocaleLowerCase())) return;
+    if (selected.length >= 10) {
+      setTagSuggestionsMessage({ kind: 'error', text: 'Articles can have up to 10 tags.' });
+      return;
+    }
+    setTagsText([...selected, tag].join(', '));
+    setTagSuggestionsMessage({ kind: 'status', text: `Added “${tag}”. Review the tag before saving.` });
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
@@ -141,6 +185,9 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
           <article className="rounded-md border border-line bg-surface p-6">
             <h1 className="font-serif text-4xl font-semibold">{f.title}</h1>
             {f.subtitle && <p className="mt-2 font-serif text-xl text-muted">{f.subtitle}</p>}
+            {f.featuredImage?.url && (
+              <StoryFrame image={f.featuredImage} sizes="(min-width: 896px) 896px, 100vw" mode="card" className="mt-6 rounded-xl" />
+            )}
             {youtubeId && (
               <div className="mt-6 aspect-video overflow-hidden rounded-xl bg-black">
                 <iframe
@@ -214,16 +261,44 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
                 <option value="">Me</option>{authors.map((a) => <option key={a._id} value={a._id}>{a.name}</option>)}
               </select></div>
           )}
-          <div><label className={label} htmlFor="tags">Tags (comma separated)</label><input id="tags" className={input} value={tagsText} onChange={(e) => setTagsText(e.target.value)} /></div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className={label} htmlFor="tags">Tags (comma separated)</label>
+              <button type="button" className={`${btnGhost} px-2 py-1 text-xs`} onClick={() => void suggestTags()} disabled={tagSuggestionsBusy || locked}>
+                {tagSuggestionsBusy ? 'Finding…' : 'Suggest trending tags'}
+              </button>
+            </div>
+            <input id="tags" className={input} value={tagsText} onChange={(e) => setTagsText(e.target.value)} />
+            <p className="text-xs text-muted">Suggestions match this draft to recently approved VoxZin trends. Tags are editorial labels, not a Google ranking shortcut; review before adding.</p>
+            {visibleTagSuggestions.length > 0 && (
+              <div className="rounded-md border border-line p-3">
+                <p className="text-xs font-medium text-muted">Relevant trend suggestions</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {visibleTagSuggestions.map((suggestion) => (
+                    <button
+                      key={`${suggestion.tag}-${suggestion.topic}`}
+                      type="button"
+                      className="rounded-full border border-line px-2.5 py-1 text-xs hover:border-accent hover:text-accent-ink"
+                      onClick={() => addTagSuggestion(suggestion.tag)}
+                      disabled={locked || selectedTagKeys.size >= 10}
+                      aria-label={`Add suggested tag ${suggestion.tag} from trending topic ${suggestion.topic}`}
+                      title={`Trending topic: ${suggestion.topic}${suggestion.trendMetric ? ` · ${suggestion.trendMetric}` : ''}`}
+                    >
+                      + {suggestion.tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {tagSuggestionsMessage && <p role={tagSuggestionsMessage.kind === 'error' ? 'alert' : 'status'} className={`text-xs ${tagSuggestionsMessage.kind === 'error' ? 'text-red-600' : 'text-muted'}`}>{tagSuggestionsMessage.text}</p>}
+          </div>
           <div>
             <span className={label}>Featured image</span>
             <div className="mt-1"><MediaPicker triggerLabel={f.featuredImage?.url ? 'Change featured image' : 'Choose featured image'} onSelect={pickImage} /></div>
-            <p className="mt-1 text-xs text-muted">This lead image appears above the story. Add images inside the story from the body editor toolbar.</p>
+            <p className="mt-1 text-xs text-muted">Shown in a consistent 16:9 frame on the homepage and article page. Add images inside the story from the body editor toolbar.</p>
             {f.featuredImage?.url && (
               <>
-                <div className="relative mt-2 aspect-video w-full overflow-hidden rounded">
-                  <Image src={f.featuredImage.url} alt="" fill sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" />
-                </div>
+                <StoryFrame image={f.featuredImage} sizes="(min-width: 768px) 50vw, 100vw" mode="card" className="mt-2 rounded" />
                 <input aria-label="Image description" placeholder="Describe the image" className={`${input} mt-2`} value={f.featuredImage.alt} onChange={(e) => set('featuredImage', { url: f.featuredImage!.url, alt: e.target.value })} />
               </>
             )}

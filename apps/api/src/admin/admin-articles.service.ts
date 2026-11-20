@@ -24,12 +24,80 @@ interface Row {
 const plainText = (html: string) => html.replace(/<[^>]*>/g, ' ');
 const readingTime = (html: string) => Math.max(1, Math.ceil(plainText(html).split(/\s+/).filter(Boolean).length / 200));
 const words = (t: string) => new Set(t.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 3));
+const TREND_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+const TAG_STOP_WORDS = new Set([
+  'about', 'after', 'and', 'are', 'but', 'for', 'from', 'have', 'how', 'into', 'its', 'latest',
+  'live', 'news', 'new', 'not', 'that', 'the', 'their', 'this', 'was', 'were', 'what', 'when',
+  'where', 'with', 'you',
+]);
+
+interface TrendTagTopic {
+  title: string;
+  keywords?: string[];
+  lastUpdatedAt: Date | string;
+  isFeatured?: boolean;
+  trendMetric?: string | null;
+}
+
+interface TrendTagSuggestion {
+  tag: string;
+  topic: string;
+  updatedAt: string;
+  trendMetric: string | null;
+}
+
+const tagTerms = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter((term) => term.length >= 2 && !TAG_STOP_WORDS.has(term));
+
+export function rankTrendingTags(text: string, topics: readonly TrendTagTopic[], now = Date.now()): TrendTagSuggestion[] {
+  const articleTerms = tagTerms(text);
+  const articleTermSet = new Set(articleTerms);
+  const normalizedText = ` ${articleTerms.join(' ')} `;
+  const suggestions = new Map<string, TrendTagSuggestion & { score: number }>();
+
+  for (const topic of topics) {
+    const updatedAtMs = new Date(topic.lastUpdatedAt).getTime();
+    if (!Number.isFinite(updatedAtMs) || now - updatedAtMs > TREND_WINDOW_MS) continue;
+    const updatedAt = new Date(updatedAtMs).toISOString();
+    const freshness = Math.max(0, 1 - Math.max(0, now - updatedAtMs) / TREND_WINDOW_MS);
+
+    for (const candidate of [topic.title, ...(topic.keywords ?? [])]) {
+      const tag = candidate.trim().replace(/\s+/g, ' ');
+      const terms = tagTerms(tag);
+      if (!tag || tag.length > 50 || terms.length === 0) continue;
+
+      const phrase = terms.join(' ');
+      const exactMatch = normalizedText.includes(` ${phrase} `);
+      const overlap = terms.filter((term) => articleTermSet.has(term)).length / terms.length;
+      if (!exactMatch && overlap < 0.6) continue;
+
+      const key = phrase;
+      const score = (exactMatch ? 10 : 4 + overlap) + freshness * 0.5 + (topic.isFeatured ? 0.25 : 0) + (topic.trendMetric ? 0.1 : 0);
+      const current = suggestions.get(key);
+      if (!current || score > current.score) {
+        suggestions.set(key, {
+          tag,
+          topic: topic.title,
+          updatedAt,
+          trendMetric: topic.trendMetric ?? null,
+          score,
+        });
+      }
+    }
+  }
+
+  return [...suggestions.values()]
+    .sort((a, b) => b.score - a.score || b.updatedAt.localeCompare(a.updatedAt) || a.tag.localeCompare(b.tag))
+    .slice(0, 10)
+    .map(({ tag, topic, updatedAt, trendMetric }) => ({ tag, topic, updatedAt, trendMetric }));
+}
 
 @Injectable()
 export class AdminArticlesService {
   constructor(
     @InjectModel('Article') private readonly articles: M,
     @InjectModel('Category') private readonly categories: M,
+    @InjectModel('TrendingTopic') private readonly trends: M,
     private readonly audit: AuditService,
     private readonly indexNow: IndexNowService,
   ) {}
@@ -95,6 +163,17 @@ export class AdminArticlesService {
   async get(user: AuthUser, id: string) {
     const row = await this.owned(user, id);
     return { ...row, id: row._id.toString() };
+  }
+
+  async suggestTags(text: string) {
+    const cutoff = new Date(Date.now() - TREND_WINDOW_MS);
+    const topics = await this.trends
+      .find({ status: 'approved', lastUpdatedAt: { $gte: cutoff } })
+      .select('title keywords lastUpdatedAt isFeatured trendMetric')
+      .sort({ isFeatured: -1, lastUpdatedAt: -1 })
+      .limit(300)
+      .lean<TrendTagTopic[]>();
+    return { items: rankTrendingTags(text, topics) };
   }
 
   private async findDuplicates(title: string, excludeId?: string) {

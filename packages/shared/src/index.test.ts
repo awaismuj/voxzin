@@ -4,6 +4,7 @@ import {
   articleFeedbackListQuery,
   articleFeedbackPatchInput,
   articleInput,
+  adminArticleTagSuggestionsQuery,
   adminNewsletterCampaignInput,
   adminNewsletterSubscribersQuery,
   canTransition,
@@ -138,5 +139,13 @@ describe('articleInput', () => {
     expect(parsed.success).toBe(true);
     if (parsed.success) expect(parsed.data.focusKeyword).toBe('global technology');
     expect(articleInput.safeParse({ ...article, focusKeyword: 'x'.repeat(81) }).success).toBe(false);
+  });
+});
+
+describe('admin article tag suggestion query', () => {
+  it('requires bounded article text for matching suggestions', () => {
+    expect(adminArticleTagSuggestionsQuery.safeParse({ q: 'A detailed draft about a topic.' }).success).toBe(true);
+    expect(adminArticleTagSuggestionsQuery.safeParse({ q: 'short' }).success).toBe(false);
+    expect(adminArticleTagSuggestionsQuery.safeParse({ q: 'x'.repeat(2001) }).success).toBe(false);
   });
 });

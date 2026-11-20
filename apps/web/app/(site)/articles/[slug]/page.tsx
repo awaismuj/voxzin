@@ -119,7 +119,7 @@ export default async function ArticlePage({ params }: Props) {
       <StoryFrame
         image={a.image}
         sizes="(min-width: 896px) 896px, 100vw"
-        mode="natural"
+        mode="card"
         priority
         className="mx-auto mt-8 max-w-4xl rounded-2xl shadow-sm"
       />

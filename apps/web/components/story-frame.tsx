@@ -5,13 +5,7 @@ type FrameImage = { url: string; alt: string; width?: number; height?: number } 
 
 const WIDE = 16 / 9;
 
-/**
- * One frame for every story picture, so uploads always sit fully inside it.
- * - mode="natural" (lead story, article page): the frame takes the picture's own shape, so nothing is cropped
- *   and there are no side bars. Very tall or very wide pictures are limited to 1:1 – 2.4:1 and filled with a blurred copy.
- * - mode="card" (thumbnails, grids): a fixed 16:9 frame keeps rows tidy. Pictures within ~8% of 16:9 fill it;
- *   anything else is shown whole over a blurred copy instead of being cropped.
- */
+/** Story cards use a consistent 16:9 crop; natural mode retains a bounded, uncropped image shape. */
 export function StoryFrame({
   image,
   sizes,
@@ -32,7 +26,7 @@ export function StoryFrame({
   const exact = ratio !== null && Math.abs(ratio / frame - 1) <= (mode === 'natural' ? 0.02 : 0.08);
   return (
     <div className={cn('relative overflow-hidden bg-navy', className)} style={{ aspectRatio: String(frame) }}>
-      <StoryImage image={image} sizes={sizes} priority={priority} fit={exact ? 'cover' : 'contain'} />
+      <StoryImage image={image} sizes={sizes} priority={priority} fit={mode === 'card' || exact ? 'cover' : 'contain'} />
     </div>
   );
 }

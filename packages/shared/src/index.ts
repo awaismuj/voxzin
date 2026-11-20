@@ -298,6 +298,9 @@ export const articleInput = z.object({
 export const articlePatchInput = articleInput.partial();
 export type ArticleInput = z.infer<typeof articleInput>;
 export type ArticlePatchInput = z.infer<typeof articlePatchInput>;
+export const adminArticleTagSuggestionsQuery = z.object({
+  q: z.string().trim().min(20).max(2000),
+});
 
 export const transitionInput = z.object({
   status: z.enum(ARTICLE_STATUSES),
