@@ -20,6 +20,7 @@ interface Row {
   subtitle?: string;
   youtubeUrl?: string | null;
   excerpt: string;
+  tags?: string[];
   content: string;
   featuredImage?: { url?: string; alt?: string };
   category: { name: string; slug: string };
@@ -30,6 +31,8 @@ interface Row {
   readingTime: number;
   seoTitle?: string;
   metaDescription?: string;
+  socialTitle?: string;
+  socialDescription?: string;
   canonicalUrl?: string;
 }
 
@@ -186,6 +189,7 @@ export class ArticlesService {
 
     return {
       ...toSummary(row),
+      tags: row.tags ?? [],
       subtitle: row.subtitle ?? null,
       youtubeUrl: row.youtubeUrl ?? null,
       content: sanitizeArticleHtml(row.content),
@@ -198,6 +202,8 @@ export class ArticlesService {
       seo: {
         title: row.seoTitle || row.title,
         description: row.metaDescription || row.excerpt,
+        socialTitle: row.socialTitle || row.seoTitle || row.title,
+        socialDescription: row.socialDescription || row.metaDescription || row.excerpt,
         canonicalUrl: row.canonicalUrl ?? null,
       },
     };

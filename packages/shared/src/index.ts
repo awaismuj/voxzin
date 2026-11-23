@@ -77,6 +77,7 @@ export interface ArticleSummary {
 }
 
 export interface ArticleDetail extends ArticleSummary {
+  tags: string[];
   subtitle: string | null;
   youtubeUrl: string | null;
   /** Sanitized HTML. The API sanitizes before sending. */
@@ -85,7 +86,7 @@ export interface ArticleDetail extends ArticleSummary {
   author: { name: string; slug: string; designation: string | null };
   sources: { title: string; url: string }[];
   related: ArticleSummary[];
-  seo: { title: string; description: string; canonicalUrl: string | null };
+  seo: { title: string; description: string; socialTitle: string; socialDescription: string; canonicalUrl: string | null };
 }
 
 export interface ArticleFeedbackDto {
@@ -288,6 +289,8 @@ export const articleInput = z.object({
   featuredImage: z.object({ url: imageUrl, alt: z.string().trim().min(1).max(300) }).optional(),
   seoTitle: z.string().trim().max(70).optional(),
   metaDescription: z.string().trim().max(170).optional(),
+  socialTitle: z.string().trim().max(70).optional(),
+  socialDescription: z.string().trim().max(200).optional(),
   focusKeyword: z.string().trim().max(80).optional(),
   canonicalUrl: httpsUrl.optional(),
   youtubeUrl: youtubeVideoUrl.nullable().optional(),

@@ -140,6 +140,25 @@ describe('articleInput', () => {
     if (parsed.success) expect(parsed.data.focusKeyword).toBe('global technology');
     expect(articleInput.safeParse({ ...article, focusKeyword: 'x'.repeat(81) }).success).toBe(false);
   });
+
+  it('accepts bounded social sharing overrides and rejects overlong values', () => {
+    const article = {
+      title: 'A valid title', excerpt: 'A valid excerpt here', content: '<p>Some body text here ok</p>',
+      categoryId: 'a'.repeat(24),
+    };
+    const parsed = articleInput.safeParse({
+      ...article,
+      socialTitle: '  Story for sharing  ',
+      socialDescription: '  A separate description for social previews.  ',
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.socialTitle).toBe('Story for sharing');
+      expect(parsed.data.socialDescription).toBe('A separate description for social previews.');
+    }
+    expect(articleInput.safeParse({ ...article, socialTitle: 'x'.repeat(71) }).success).toBe(false);
+    expect(articleInput.safeParse({ ...article, socialDescription: 'x'.repeat(201) }).success).toBe(false);
+  });
 });
 
 describe('admin article tag suggestion query', () => {

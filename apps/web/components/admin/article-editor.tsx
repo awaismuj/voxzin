@@ -14,7 +14,7 @@ export interface ArticleDoc {
   id?: string; title?: string; subtitle?: string; excerpt?: string; content?: string; category?: string; author?: string;
   tags?: string[]; sources?: { title: string; url: string }[]; featuredImage?: { url: string; alt: string };
   youtubeUrl?: string | null;
-  seoTitle?: string; metaDescription?: string; focusKeyword?: string; canonicalUrl?: string; isFeatured?: boolean; isBreaking?: boolean;
+  seoTitle?: string; metaDescription?: string; socialTitle?: string; socialDescription?: string; focusKeyword?: string; canonicalUrl?: string; isFeatured?: boolean; isBreaking?: boolean;
   status?: ArticleStatus; slug?: string; aiAssisted?: boolean;
 }
 type Opt = { _id: string; name: string };
@@ -64,7 +64,9 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     sources: parseSources(sourcesText),
     featuredImage: f.featuredImage?.url ? { url: f.featuredImage.url, alt: f.featuredImage.alt || f.title } : undefined,
     youtubeUrl: f.youtubeUrl?.trim() || null,
-    seoTitle: f.seoTitle || undefined, metaDescription: f.metaDescription || undefined, focusKeyword: f.focusKeyword || undefined, canonicalUrl: f.canonicalUrl || undefined,
+    seoTitle: f.seoTitle || undefined, metaDescription: f.metaDescription || undefined,
+    socialTitle: f.socialTitle || undefined, socialDescription: f.socialDescription || undefined,
+    focusKeyword: f.focusKeyword || undefined, canonicalUrl: f.canonicalUrl || undefined,
     isFeatured: Boolean(f.isFeatured), isBreaking: Boolean(f.isBreaking), aiAssisted: Boolean(f.aiAssisted),
   });
 
@@ -116,6 +118,8 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   const wordCount = bodyText ? bodyText.match(/[\p{L}\p{N}]+(?:[-'’][\p{L}\p{N}]+)*/gu)?.length ?? 0 : 0;
   const seoTitle = f.seoTitle?.trim() || f.title?.trim() || '';
   const metaDescription = f.metaDescription?.trim() || f.excerpt?.trim() || '';
+  const socialTitle = f.socialTitle?.trim() || seoTitle;
+  const socialDescription = f.socialDescription?.trim() || metaDescription;
   const focusKeyword = f.focusKeyword?.trim().toLocaleLowerCase() ?? '';
   const containsFocusKeyword = (value: string) => Boolean(focusKeyword && value.toLocaleLowerCase().includes(focusKeyword));
   const hasHeading = /<h[2-3]\b/i.test(f.content ?? '');
@@ -331,6 +335,16 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
             <textarea id="seod" rows={3} maxLength={170} className={input} value={f.metaDescription ?? ''} onChange={(e) => set('metaDescription', e.target.value)} placeholder={f.excerpt || 'Summarize what readers will learn'} />
             <p className="mt-1 text-xs text-muted">{(f.metaDescription || f.excerpt || '').length}/170 characters · describe this story specifically; Google may show a different snippet.</p>
           </div>
+          <div>
+            <label className={label} htmlFor="social-title">Social share title (optional)</label>
+            <input id="social-title" maxLength={70} className={input} value={f.socialTitle ?? ''} onChange={(e) => set('socialTitle', e.target.value)} placeholder={seoTitle || 'Title shown when shared'} />
+            <p className="mt-1 text-xs text-muted">Leave blank to reuse the SEO title.</p>
+          </div>
+          <div>
+            <label className={label} htmlFor="social-description">Social share description (optional)</label>
+            <textarea id="social-description" rows={3} maxLength={200} className={input} value={f.socialDescription ?? ''} onChange={(e) => set('socialDescription', e.target.value)} placeholder={metaDescription || 'Description shown when shared'} />
+            <p className="mt-1 text-xs text-muted">{(f.socialDescription || metaDescription).length}/200 characters · leave blank to reuse the search description.</p>
+          </div>
           <div aria-label="Search result preview" className="rounded-md border border-line bg-white p-4 text-[#202124] shadow-sm">
             <p className="text-xs text-[#5f6368]">voxzin.com › articles › {f.slug || 'article-url'}</p>
             <p className="mt-1 line-clamp-1 text-xl leading-snug text-[#1a0dab]">{f.seoTitle || f.title || 'Search result title'}</p>
@@ -340,8 +354,8 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
             {f.featuredImage?.url && <div className="relative aspect-[1.91/1] bg-bg"><Image src={f.featuredImage.url} alt="" fill sizes="(min-width: 1024px) 25vw, 100vw" className="object-cover" /></div>}
             <div className="space-y-1 bg-bg p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted">voxzin.com</p>
-              <p className="line-clamp-2 text-sm font-semibold">{f.seoTitle || f.title || 'Story headline'}</p>
-              <p className="line-clamp-2 text-xs text-muted">{f.metaDescription || f.excerpt || 'Story summary shown when shared.'}</p>
+              <p className="line-clamp-2 text-sm font-semibold">{socialTitle || 'Story headline'}</p>
+              <p className="line-clamp-2 text-xs text-muted">{socialDescription || 'Story summary shown when shared.'}</p>
             </div>
           </div>
           <div className="rounded-md border border-line p-3">
