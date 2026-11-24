@@ -27,6 +27,103 @@ const parseSources = (text: string) =>
     return url ? { title: t!.trim(), url } : { title: l, url: l };
   });
 
+function escapeHtml(value: string) {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function markdownToArticleHtml(markdown: string) {
+  const source = markdown.trim();
+  if (!source) return '';
+
+  const links: string[] = [];
+  const withLinks = source.replace(/!?\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi, (_match, text: string, url: string) => {
+    const token = `\u0000LINK${links.length}\u0000`;
+    links.push(`<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text)}</a>`);
+    return token;
+  });
+
+  const inline = (value: string) => {
+    let output = escapeHtml(value);
+    output = output.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    output = output.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    output = output.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+    output = output.replace(/(^|[^_])_([^_\n]+)_/g, '$1<em>$2</em>');
+    output = output.replace(/\u0000LINK(\d+)\u0000/g, (_match, index: string) => links[Number(index)] ?? '');
+    return output;
+  };
+
+  const html: string[] = [];
+  let paragraph: string[] = [];
+  let listType: 'ul' | 'ol' | null = null;
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    html.push(`<p>${inline(paragraph.join(' ').replace(/\u0000/g, ''))}</p>`);
+    paragraph = [];
+  };
+  const closeList = () => {
+    if (listType) html.push(`</${listType}>`);
+    listType = null;
+  };
+
+  for (const rawLine of withLinks.split('\n')) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushParagraph();
+      closeList();
+      continue;
+    }
+    const heading = line.match(/^\*\*(.+)\*\*$/);
+    if (heading) {
+      flushParagraph();
+      closeList();
+      html.push(`<h3>${inline(heading[1]!)}</h3>`);
+      continue;
+    }
+    const unordered = line.match(/^[-*]\s+(.+)$/);
+    if (unordered) {
+      flushParagraph();
+      if (listType !== 'ul') { closeList(); html.push('<ul>'); listType = 'ul'; }
+      html.push(`<li>${inline(unordered[1]!)}</li>`);
+      continue;
+    }
+    const ordered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (ordered) {
+      flushParagraph();
+      if (listType !== 'ol') { closeList(); html.push('<ol>'); listType = 'ol'; }
+      html.push(`<li>${inline(ordered[1]!)}</li>`);
+      continue;
+    }
+    closeList();
+    paragraph.push(line);
+  }
+  flushParagraph();
+  closeList();
+  return html.join('\n');
+}
+
+function getLabeledValue(text: string, labels: string[]) {
+  const normalized = text.replace(/\r/g, '');
+  for (const label of labels) {
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = normalized.match(new RegExp(`(?:^|\\n)\\*{0,2}${escaped}\\*{0,2}:?[ \\t]*(?:\\n)?(.*?)(?=\\n(?:\\*{0,2}(?:Headline|Subtitle|Excerpt|Category|Tags|Featured Image Alt Text|Featured Image URL|YouTube|YouTube URL|Focus Phrase|SEO Title|Meta Description|Social Share Title|Social Share Description|Canonical URL|Sources|SEO|SEO & Sharing|Body)\\*{0,2}:?)|\\n-{3,}|$)`, 'i'));
+    if (match) return match[1]!.replace(/^\n/, '').trim();
+  }
+  return '';
+}
+
+function stripImportCodeFence(text: string) {
+  return text.trim().replace(/^```(?:text|md|markdown)?\s*\n?/i, '').replace(/\n?```$/i, '').trim();
+}
+
+function resolveCategory(categoryName: string, categories: Opt[]) {
+  const wanted = categoryName.trim().toLocaleLowerCase().replace(/\s*(?:category)?$/i, '');
+  return categories.find((category) => category.name.toLocaleLowerCase() === wanted)?. _id
+    ?? categories.find((category) => category.name.toLocaleLowerCase().includes(wanted))?._id
+    ?? (wanted === 'cricket' ? categories.find((category) => category.name.toLocaleLowerCase() === 'sports')?._id : undefined)
+    ?? '';
+}
+
 function articleText(html: string) {
   return html
     .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
@@ -52,6 +149,8 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[]>([]);
   const [tagSuggestionsBusy, setTagSuggestionsBusy] = useState(false);
   const [tagSuggestionsMessage, setTagSuggestionsMessage] = useState<{ kind: 'status' | 'error'; text: string } | null>(null);
+  const [importText, setImportText] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
   const set = <K extends keyof ArticleDoc>(k: K, v: ArticleDoc[K]) => setF((p) => ({ ...p, [k]: v }));
   const status = f.status ?? 'draft';
   const isAuthor = role === 'author';
@@ -107,6 +206,159 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
 
   function pickImage(image: { url: string; alt: string }) {
     set('featuredImage', image);
+  }
+
+  function buildImportedArticle(): {
+    title: string;
+    subtitle?: string;
+    excerpt: string;
+    content: string;
+    categoryId?: string;
+    tags: string[];
+    sources: { title: string; url: string }[];
+    featuredImage?: { url: string; alt: string };
+    youtubeUrl?: string | null;
+    seoTitle?: string;
+    metaDescription?: string;
+    socialTitle?: string;
+    socialDescription?: string;
+    focusKeyword?: string;
+    canonicalUrl?: string;
+  } | null {
+    setImportOpen(false);
+    setMsg(null);
+    const text = stripImportCodeFence(importText);
+    if (!text) {
+      setMsg({ kind: 'error', text: 'Paste article fields or JSON before importing.' });
+      setImportOpen(true);
+      return null;
+    }
+
+    let imported: Record<string, unknown> | null = null;
+    if (text.startsWith('{')) {
+      try { imported = JSON.parse(text) as Record<string, unknown>; } catch {
+        setMsg({ kind: 'error', text: 'The pasted JSON is invalid.' });
+        setImportOpen(true);
+        return null;
+      }
+    }
+
+    const get = (jsonKey: string, labels: string[]) => {
+      if (imported && typeof imported[jsonKey] === 'string') return imported[jsonKey] as string;
+      return getLabeledValue(text, labels);
+    };
+
+    const title = get('title', ['Headline']);
+    const subtitle = get('subtitle', ['Subtitle']);
+    const excerpt = get('excerpt', ['Excerpt']);
+    const body = get('content', ['Body']).replace(/^```(?:html|md|markdown)?\s*\n?/i, '').replace(/\n?```$/i, '').trim();
+    const categoryName = get('category', ['Category']);
+    const tags = get('tags', ['Tags']);
+    const sources = get('sources', ['Sources']);
+    const seoTitle = get('seoTitle', ['SEO title', 'SEO Title']);
+    const metaDescription = get('metaDescription', ['Meta description', 'Meta Description']);
+    const socialTitle = get('socialTitle', ['Social share title', 'Social Share Title']);
+    const socialDescription = get('socialDescription', ['Social share description', 'Social Share Description']);
+    const focusKeyword = get('focusKeyword', ['Focus phrase', 'Focus Phrase']);
+    const youtubeUrl = get('youtubeUrl', ['YouTube video', 'YouTube URL', 'YouTube']);
+    const canonicalUrl = get('canonicalUrl', ['Canonical URL']);
+    const nestedImage = imported?.featuredImage;
+    const imageUrl = get('featuredImageUrl', ['Featured Image URL'])
+      || (typeof nestedImage === 'object' && nestedImage && typeof (nestedImage as { url?: unknown }).url === 'string'
+        ? (nestedImage as { url: string }).url
+        : '');
+    const imageAlt = get('featuredImageAlt', ['Featured Image Alt Text', 'Featured image alt text'])
+      || (typeof nestedImage === 'object' && nestedImage && typeof (nestedImage as { alt?: unknown }).alt === 'string'
+        ? (nestedImage as { alt: string }).alt
+        : '');
+
+    if (!title || !excerpt || !body) {
+      setMsg({ kind: 'error', text: 'Import needs at least Headline, Excerpt, and Body.' });
+      setImportOpen(true);
+      return null;
+    }
+
+    const categoryId = resolveCategory(categoryName, categories) || f.category || undefined;
+    const tagsValue = Array.isArray(imported?.tags)
+      ? (imported.tags as unknown[]).filter((tag): tag is string => typeof tag === 'string').join(', ')
+      : tags;
+    const sourcesValue = Array.isArray(imported?.sources)
+      ? (imported.sources as { title?: string; url?: string }[]).map((source) => `${source.title ?? ''}${source.url ? ` | ${source.url}` : ''}`).join('\n')
+      : sources;
+    const importedTags = tagsValue.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 10);
+    const importedSources = parseSources(sourcesValue);
+    const featuredImage = imageUrl
+      ? { url: imageUrl, alt: imageAlt || title }
+      : imageAlt && f.featuredImage?.url
+        ? { url: f.featuredImage.url, alt: imageAlt }
+        : f.featuredImage?.url
+          ? { ...f.featuredImage }
+          : undefined;
+    const content = markdownToArticleHtml(body);
+
+    setF((current) => ({
+      ...current,
+      title,
+      subtitle: subtitle || undefined,
+      excerpt,
+      content,
+      category: categoryId,
+      youtubeUrl: youtubeUrl.trim() || null,
+      seoTitle: seoTitle || undefined,
+      metaDescription: metaDescription || undefined,
+      socialTitle: socialTitle || undefined,
+      socialDescription: socialDescription || undefined,
+      focusKeyword: focusKeyword || undefined,
+      canonicalUrl: canonicalUrl || undefined,
+      featuredImage,
+    }));
+    setTagsText(importedTags.join(', '));
+    setSourcesText(sourcesValue);
+    setTab('edit');
+    setMsg({ kind: 'ok', text: 'Article fields imported. Review them before saving.' });
+    return {
+      title,
+      subtitle: subtitle || undefined,
+      excerpt,
+      content,
+      categoryId,
+      tags: importedTags,
+      sources: importedSources,
+      featuredImage,
+      youtubeUrl: youtubeUrl.trim() || null,
+      seoTitle: seoTitle || undefined,
+      metaDescription: metaDescription || undefined,
+      socialTitle: socialTitle || undefined,
+      socialDescription: socialDescription || undefined,
+      focusKeyword: focusKeyword || undefined,
+      canonicalUrl: canonicalUrl || undefined,
+    };
+  }
+
+  function applyImport() {
+    buildImportedArticle();
+  }
+
+  async function importAndCreateDraft() {
+    const imported = buildImportedArticle();
+    if (!imported) return;
+    if (!imported.categoryId) {
+      setMsg({ kind: 'error', text: 'Choose a valid Category such as Sports or add it to the category list first.' });
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await adminFetch<{ id: string }>('/admin/articles', {
+        method: 'POST',
+        body: { ...imported, aiAssisted: false, isFeatured: Boolean(f.isFeatured), isBreaking: Boolean(f.isBreaking) },
+      });
+      router.replace(`/admin/articles/${r.id}`);
+    } catch (e) {
+      setMsg({ kind: 'error', text: e instanceof Error ? e.message : 'Could not create draft' });
+    } finally {
+      setBusy(false);
+    }
   }
 
   const next = f.id ? TRANSITIONS[status].filter((to) => canTransition(role, status, to)) : [];
@@ -180,6 +432,41 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
       <div className="space-y-4">
+        <section className={card}>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between text-left"
+            aria-expanded={importOpen}
+            onClick={() => setImportOpen((open) => !open)}
+          >
+            <span>
+              <span className="block font-semibold">Import article fields</span>
+              <span className="mt-1 block text-xs text-muted">Paste one article template or JSON, then fill every field in one click.</span>
+            </span>
+            <span className="text-xl" aria-hidden="true">{importOpen ? '−' : '+'}</span>
+          </button>
+          {importOpen && (
+            <div className="mt-3 space-y-3">
+              <label className={label} htmlFor="article-import">Article template / JSON</label>
+              <textarea
+                id="article-import"
+                rows={14}
+                className={input}
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                placeholder={'**Headline**\nYour headline\n**Subtitle**\nYour subtitle\n**Excerpt**\nYour summary\n**Category**\nSports\n**Tags**\nCricket, Trending\n\n**Body**\nYour article body'}
+              />
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className={btnGhost} onClick={applyImport} disabled={!importText.trim()}>
+                  Import fields
+                </button>
+                <button type="button" className={btn} onClick={() => void importAndCreateDraft()} disabled={!importText.trim() || busy}>
+                  Import and create draft
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
         <div className="flex gap-2" role="tablist">
           {(['edit', 'preview'] as const).map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`${btnGhost} ${tab === t ? 'ring-1 ring-accent' : ''}`}>{t === 'edit' ? 'Write' : 'Preview'}</button>

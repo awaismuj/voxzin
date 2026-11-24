@@ -8,7 +8,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
 import StarterKit from '@tiptap/starter-kit';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MediaPicker } from './media-picker';
 import { btnGhost } from './ui';
 
@@ -53,6 +53,11 @@ export function RichEditor({ value, onChange }: { value: string; onChange: (html
       });
     },
   });
+  useEffect(() => {
+    if (editor && !editor.isDestroyed && editor.getHTML() !== value) {
+      editor.commands.setContent(value, false);
+    }
+  }, [editor, value]);
   if (!editor) return <div className="h-96 animate-pulse rounded-md bg-line" />;
 
   const b = (label: string, run: () => void, active = false) => (
