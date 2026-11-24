@@ -37,7 +37,7 @@ function markdownToArticleHtml(markdown: string) {
 
   const links: string[] = [];
   const withLinks = source.replace(/!?\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi, (_match, text: string, url: string) => {
-    const token = `\u0000LINK${links.length}\u0000`;
+    const token = `VOXZINLINKTOKEN${links.length}VOXZINEND`;
     links.push(`<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text)}</a>`);
     return token;
   });
@@ -48,7 +48,7 @@ function markdownToArticleHtml(markdown: string) {
     output = output.replace(/__(.+?)__/g, '<strong>$1</strong>');
     output = output.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
     output = output.replace(/(^|[^_])_([^_\n]+)_/g, '$1<em>$2</em>');
-    output = output.replace(/\u0000LINK(\d+)\u0000/g, (_match, index: string) => links[Number(index)] ?? '');
+    output = output.replace(/VOXZINLINKTOKEN(\d+)VOXZINEND/g, (_match, index: string) => links[Number(index)] ?? '');
     return output;
   };
 
@@ -58,7 +58,7 @@ function markdownToArticleHtml(markdown: string) {
 
   const flushParagraph = () => {
     if (!paragraph.length) return;
-    html.push(`<p>${inline(paragraph.join(' ').replace(/\u0000/g, ''))}</p>`);
+    html.push(`<p>${inline(paragraph.join(' '))}</p>`);
     paragraph = [];
   };
   const closeList = () => {
