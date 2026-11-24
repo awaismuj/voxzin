@@ -114,7 +114,7 @@ function getLabeledValue(text: string, labels: string[]) {
     'Sources', 'SEO', 'SEO & Sharing', 'Body',
   ];
   const normalizeLabel = (line: string) =>
-    line.trim().replace(/^#+\s*/, '').replace(/^\*{1,2}|\*{1,2}$/g, '').replace(/:$/, '').trim().toLocaleLowerCase();
+    line.trim().replace(/^[-*•]\s*/, '').replace(/^#+\s*/, '').replace(/^\*{1,2}|\*{1,2}$/g, '').replace(/:$/, '').trim().toLocaleLowerCase();
   const lines = text.replace(/\r/g, '').split('\n');
   const wanted = new Set(labels.map((label) => label.toLocaleLowerCase()));
   const start = lines.findIndex((line) => wanted.has(normalizeLabel(line)));
@@ -136,16 +136,24 @@ function getLabeledValue(text: string, labels: string[]) {
 
 function getInlineLabeledValue(text: string, labels: string[]) {
   const lines = text.replace(/\r/g, '').split('\n');
-  for (const label of labels) {
-    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
-    const pattern = new RegExp(
-      `^\\s*(?:[-*]\\s*)?\\*{0,2}${escaped}(?:\\s*\\([^)]*\\))?\\s*:?\\*{0,2}\\s*:?\\s*(.*?)\\s*$`,
-      'i',
-    );
-    for (const line of lines) {
-      const match = line.match(pattern);
-      if (match) return match[1]!.trim().replace(/^`(.*)`$/, '$1');
-    }
+  const wanted = new Set(labels.map((label) => label.toLocaleLowerCase()));
+  for (const line of lines) {
+    const candidate = line.trim().replace(/^[-*•]\s*/, '');
+    const colon = candidate.indexOf(':');
+    if (colon < 0) continue;
+
+    const key = candidate.slice(0, colon)
+      .replace(/\*{1,2}/g, '')
+      .replace(/`/g, '')
+      .replace(/\([^)]*\)/g, '')
+      .trim()
+      .toLocaleLowerCase();
+    if (!wanted.has(key)) continue;
+
+    return candidate.slice(colon + 1)
+      .replace(/^\*{1,2}\s*/, '')
+      .trim()
+      .replace(/^`(.*)`$/, '$1');
   }
   return '';
 }
@@ -310,6 +318,14 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     const focusKeyword = get('focusKeyword', ['Focus phrase', 'Focus Phrase']);
     const youtubeUrl = get('youtubeUrl', ['YouTube video', 'YouTube URL', 'YouTube']);
     const canonicalUrl = get('canonicalUrl', ['Canonical URL']);
+    const seoSectionProvided = /^\s*(?:#+\s*)?(?:[-*•]\s*)?\*{0,2}SEO\s*&\s*Sharing\*{0,2}\s*$/im.test(text);
+    const missingSeoFields = seoSectionProvided ? [
+      !focusKeyword && 'Focus phrase',
+      !seoTitle && 'SEO title',
+      !metaDescription && 'Meta description',
+      !rawSocialTitle && 'Social share title',
+      !socialDescription && 'Social share description',
+    ].filter((field): field is string => Boolean(field)) : [];
     const nestedImage = imported?.featuredImage;
     const imageUrl = get('featuredImageUrl', ['Featured Image URL'])
       || (typeof nestedImage === 'object' && nestedImage && typeof (nestedImage as { url?: unknown }).url === 'string'
@@ -369,10 +385,13 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     setSourcesText(sourcesValue);
     setTab('edit');
     setMsg({
-      kind: 'ok',
-      text: rawSocialTitle.length > 70
-        ? 'Article fields imported. The social share title was shortened to its 70-character limit; review before saving.'
-        : 'Article fields imported. Review them before saving.',
+      kind: missingSeoFields.length ? 'error' : 'ok',
+      text: [
+        missingSeoFields.length
+          ? `Article imported, but could not find these SEO fields: ${missingSeoFields.join(', ')}.`
+          : 'Article fields imported, including all SEO and sharing fields. Review them before saving.',
+        rawSocialTitle.length > 70 ? 'The social share title was shortened to its 70-character limit.' : '',
+      ].filter(Boolean).join(' '),
     });
     return {
       title,
