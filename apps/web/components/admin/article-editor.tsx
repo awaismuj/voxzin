@@ -21,11 +21,15 @@ type Opt = { _id: string; name: string };
 type TagSuggestion = { tag: string; topic: string; updatedAt: string; trendMetric: string | null };
 
 const parseSources = (text: string) =>
-  text.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
-    const [t, ...rest] = l.split('|');
-    const url = rest.join('|').trim();
-    return url ? { title: t!.trim(), url } : { title: l, url: l };
-  });
+  text
+    .replace(/```(?:text)?\s*/gi, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !/^Sources$/i.test(line) && !/^---+$/.test(line))
+    .flatMap((line) => {
+      const match = line.match(/^(.*?)\s*\|\s*(https:\/\/\S+)\s*$/i);
+      return match ? [{ title: match[1]!.trim(), url: match[2]!.trim() }] : [];
+    });
 
 function escapeHtml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -103,13 +107,31 @@ function markdownToArticleHtml(markdown: string) {
 }
 
 function getLabeledValue(text: string, labels: string[]) {
-  const normalized = text.replace(/\r/g, '');
-  for (const label of labels) {
-    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = normalized.match(new RegExp(`(?:^|\\n)\\*{0,2}${escaped}\\*{0,2}:?[ \\t]*(?:\\n)?(.*?)(?=\\n(?:\\*{0,2}(?:Headline|Subtitle|Excerpt|Category|Tags|Featured Image Alt Text|Featured Image URL|YouTube|YouTube URL|Focus Phrase|SEO Title|Meta Description|Social Share Title|Social Share Description|Canonical URL|Sources|SEO|SEO & Sharing|Body)\\*{0,2}:?)|\\n-{3,}|$)`, 'i'));
-    if (match) return match[1]!.replace(/^\n/, '').trim();
+  const fieldLabels = [
+    'Headline', 'Subtitle', 'Excerpt', 'Category', 'Tags', 'Featured Image Alt Text',
+    'Featured Image URL', 'YouTube', 'YouTube URL', 'Focus Phrase', 'SEO Title',
+    'Meta Description', 'Social Share Title', 'Social Share Description', 'Canonical URL',
+    'Sources', 'SEO', 'SEO & Sharing', 'Body',
+  ];
+  const normalizeLabel = (line: string) =>
+    line.trim().replace(/^#+\s*/, '').replace(/^\*{1,2}|\*{1,2}$/g, '').replace(/:$/, '').trim().toLocaleLowerCase();
+  const lines = text.replace(/\r/g, '').split('\n');
+  const wanted = new Set(labels.map((label) => label.toLocaleLowerCase()));
+  const start = lines.findIndex((line) => wanted.has(normalizeLabel(line)));
+  if (start < 0) return '';
+
+  const nextField = lines.findIndex((line, index) =>
+    index > start && fieldLabels.some((label) => normalizeLabel(line) === label.toLocaleLowerCase()),
+  );
+  const end = nextField < 0 ? lines.length : nextField;
+  const section = lines.slice(start + 1, end);
+  while (section.length && /^-{3,}$/.test(section[0]!.trim())) section.shift();
+  while (section.length && /^-{3,}$/.test(section.at(-1)!.trim())) section.pop();
+  const value = section.join('\n').trim();
+  if (labels.some((label) => label.toLocaleLowerCase() === 'sources')) {
+    return value.replace(/^text\s*\n/i, '').replace(/^```(?:text)?\s*\n?/i, '').replace(/\n?```$/i, '').trim();
   }
-  return '';
+  return value;
 }
 
 function stripImportCodeFence(text: string) {
@@ -117,11 +139,20 @@ function stripImportCodeFence(text: string) {
 }
 
 function resolveCategory(categoryName: string, categories: Opt[]) {
-  const wanted = categoryName.trim().toLocaleLowerCase().replace(/\s*(?:category)?$/i, '');
-  return categories.find((category) => category.name.toLocaleLowerCase() === wanted)?. _id
-    ?? categories.find((category) => category.name.toLocaleLowerCase().includes(wanted))?._id
-    ?? (wanted === 'cricket' ? categories.find((category) => category.name.toLocaleLowerCase() === 'sports')?._id : undefined)
-    ?? '';
+  const normalize = (value: string) => value.toLocaleLowerCase()
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\b(news|culture)\b/g, '')
+    .replace(/&/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  const choices = categoryName.split(/\s*\(or\s*/i).map((choice) => normalize(choice));
+  for (const wanted of choices) {
+    const category = categories.find((item) => normalize(item.name) === wanted)
+      ?? categories.find((item) => wanted && new RegExp(`\\b${wanted.replace(/\s+/g, '\\s+')}\\b`).test(normalize(item.name)))
+      ?? (wanted === 'cricket' ? categories.find((item) => normalize(item.name) === 'sports') : undefined);
+    if (category) return category._id;
+  }
+  return '';
 }
 
 function articleText(html: string) {
@@ -272,8 +303,13 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
         ? (nestedImage as { alt: string }).alt
         : '');
 
-    if (!title || !excerpt || !body) {
-      setMsg({ kind: 'error', text: 'Import needs at least Headline, Excerpt, and Body.' });
+    const missingFields = [
+      !title && 'Headline',
+      !excerpt && 'Excerpt',
+      !body && 'Body',
+    ].filter((field): field is string => Boolean(field));
+    if (missingFields.length) {
+      setMsg({ kind: 'error', text: `Could not find ${missingFields.join(', ')}. Check that each field label is on its own line.` });
       setImportOpen(true);
       return null;
     }
