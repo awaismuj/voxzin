@@ -134,6 +134,22 @@ function getLabeledValue(text: string, labels: string[]) {
   return value;
 }
 
+function getInlineLabeledValue(text: string, labels: string[]) {
+  const lines = text.replace(/\r/g, '').split('\n');
+  for (const label of labels) {
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+    const pattern = new RegExp(
+      `^\\s*(?:[-*]\\s*)?\\*{0,2}${escaped}(?:\\s*\\([^)]*\\))?\\s*:?\\*{0,2}\\s*:?\\s*(.*?)\\s*$`,
+      'i',
+    );
+    for (const line of lines) {
+      const match = line.match(pattern);
+      if (match) return match[1]!.trim().replace(/^`(.*)`$/, '$1');
+    }
+  }
+  return '';
+}
+
 function stripImportCodeFence(text: string) {
   return text.trim().replace(/^```(?:text|md|markdown)?\s*\n?/i, '').replace(/\n?```$/i, '').trim();
 }
@@ -276,7 +292,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
 
     const get = (jsonKey: string, labels: string[]) => {
       if (imported && typeof imported[jsonKey] === 'string') return imported[jsonKey] as string;
-      return getLabeledValue(text, labels);
+      return getLabeledValue(text, labels) || getInlineLabeledValue(text, labels);
     };
 
     const title = get('title', ['Headline']);
@@ -288,7 +304,8 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     const sources = get('sources', ['Sources']);
     const seoTitle = get('seoTitle', ['SEO title', 'SEO Title']);
     const metaDescription = get('metaDescription', ['Meta description', 'Meta Description']);
-    const socialTitle = get('socialTitle', ['Social share title', 'Social Share Title']);
+    const rawSocialTitle = get('socialTitle', ['Social share title', 'Social Share Title']);
+    const socialTitle = rawSocialTitle.length > 70 ? rawSocialTitle.slice(0, 70).trimEnd() : rawSocialTitle;
     const socialDescription = get('socialDescription', ['Social share description', 'Social Share Description']);
     const focusKeyword = get('focusKeyword', ['Focus phrase', 'Focus Phrase']);
     const youtubeUrl = get('youtubeUrl', ['YouTube video', 'YouTube URL', 'YouTube']);
@@ -351,7 +368,12 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     setTagsText(importedTags.join(', '));
     setSourcesText(sourcesValue);
     setTab('edit');
-    setMsg({ kind: 'ok', text: 'Article fields imported. Review them before saving.' });
+    setMsg({
+      kind: 'ok',
+      text: rawSocialTitle.length > 70
+        ? 'Article fields imported. The social share title was shortened to its 70-character limit; review before saving.'
+        : 'Article fields imported. Review them before saving.',
+    });
     return {
       title,
       subtitle: subtitle || undefined,
@@ -668,14 +690,24 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
             <textarea id="social-description" rows={3} maxLength={200} className={input} value={f.socialDescription ?? ''} onChange={(e) => set('socialDescription', e.target.value)} placeholder={metaDescription || 'Description shown when shared'} />
             <p className="mt-1 text-xs text-muted">{(f.socialDescription || metaDescription).length}/200 characters · leave blank to reuse the search description.</p>
           </div>
-          <div aria-label="Search result preview" className="rounded-md border border-line bg-white p-4 text-[#202124] shadow-sm">
-            <p className="text-xs text-[#5f6368]">voxzin.com › articles › {f.slug || 'article-url'}</p>
-            <p className="mt-1 line-clamp-1 text-xl leading-snug text-[#1a0dab]">{f.seoTitle || f.title || 'Search result title'}</p>
-            <p className="mt-1 line-clamp-2 text-sm text-[#4d5156]">{f.metaDescription || f.excerpt || 'A concise summary of this article will appear here.'}</p>
+          <div aria-label="Search result preview" className="overflow-hidden rounded-lg border border-line shadow-sm">
+            <div className="flex items-center justify-between border-b border-line bg-bg px-3 py-2">
+              <span className="text-xs font-semibold">Search preview</span>
+              <span className="rounded-full border border-line px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">Google</span>
+            </div>
+            <div className="bg-white p-4 text-[#202124]">
+              <p className="text-xs text-[#5f6368]">voxzin.com › articles › {f.slug || 'article-url'}</p>
+              <p className="mt-1 line-clamp-1 text-xl leading-snug text-[#1a0dab]">{f.seoTitle || f.title || 'Search result title'}</p>
+              <p className="mt-1 line-clamp-2 text-sm text-[#4d5156]">{f.metaDescription || f.excerpt || 'A concise summary of this article will appear here.'}</p>
+            </div>
           </div>
-          <div aria-label="Social sharing preview" className="overflow-hidden rounded-md border border-line">
+          <div aria-label="Social sharing preview" className="overflow-hidden rounded-lg border border-line shadow-sm">
+            <div className="flex items-center justify-between border-b border-line bg-bg px-3 py-2">
+              <span className="text-xs font-semibold">Social share preview</span>
+              <span className="rounded-full border border-line px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">Open Graph</span>
+            </div>
             {f.featuredImage?.url && <div className="relative aspect-[1.91/1] bg-bg"><Image src={f.featuredImage.url} alt="" fill sizes="(min-width: 1024px) 25vw, 100vw" className="object-cover" /></div>}
-            <div className="space-y-1 bg-bg p-3">
+            <div className="space-y-1 bg-surface p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted">voxzin.com</p>
               <p className="line-clamp-2 text-sm font-semibold">{socialTitle || 'Story headline'}</p>
               <p className="line-clamp-2 text-xs text-muted">{socialDescription || 'Story summary shown when shared.'}</p>
