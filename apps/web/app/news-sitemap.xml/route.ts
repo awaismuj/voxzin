@@ -1,6 +1,5 @@
-import type { ArticleSummary } from '@voxzin/shared';
-import { getArticles } from '@/lib/api';
-import { SITE_NAME, SITE_URL } from '@/lib/site';
+import { getSitemapData } from '@/lib/api';
+import { isCanonicalArticle, SITE_NAME, SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,14 +9,10 @@ const WINDOW_MS = 48 * 3_600_000; // Google News only reads articles from the la
 /** Google News sitemap: the articles published in the last 48 hours, newest first (max 1000). */
 export async function GET() {
   const cutoff = Date.now() - WINDOW_MS;
-  const recent: ArticleSummary[] = [];
-  for (let page = 1; page <= 10 && recent.length < 1000; page++) {
-    const data = await getArticles({ page }).catch(() => null);
-    if (!data || data.items.length === 0) break;
-    const fresh = data.items.filter((a) => new Date(a.publishedAt).getTime() >= cutoff);
-    recent.push(...fresh);
-    if (fresh.length < data.items.length || page >= data.totalPages) break;
-  }
+  const { articles } = await getSitemapData();
+  const recent = articles
+    .filter((article) => isCanonicalArticle(article) && new Date(article.publishedAt).getTime() >= cutoff)
+    .slice(0, 1000);
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">${recent
     .map(

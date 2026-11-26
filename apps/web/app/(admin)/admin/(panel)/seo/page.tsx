@@ -12,6 +12,9 @@ type Overview = {
     descriptionsTooLong: number;
     missingImages: number;
     missingImageAlt: number;
+    missingSectionHeadings: number;
+    bodyH1Found: number;
+    skippedHeadingLevels: number;
     needsAttention: number;
   };
   articles: { id: string; slug: string; title: string; issues: string[] }[];
@@ -24,6 +27,9 @@ const checks = [
   ['Descriptions over 170 characters', 'descriptionsTooLong'],
   ['Featured images missing', 'missingImages'],
   ['Featured-image alt text missing', 'missingImageAlt'],
+  ['Articles without section headings', 'missingSectionHeadings'],
+  ['Articles with an H1 in the body', 'bodyH1Found'],
+  ['Articles skipping heading levels', 'skippedHeadingLevels'],
 ] as const;
 
 export default async function SeoAdminPage() {
@@ -49,7 +55,7 @@ export default async function SeoAdminPage() {
 
       <section className={card}>
         <h2 className="text-lg font-semibold">Site discovery and monitoring</h2>
-        <p className="mt-1 text-sm text-muted">Submit your sitemap once in Search Console, then monitor indexing and queries there. Voxzin does not have access to your Search Console account.</p>
+        <p className="mt-1 text-sm text-muted">Submit both the main sitemap and Google News sitemap in Search Console, then monitor their status, indexing, and search performance there. VoxZin does not access your Search Console account.</p>
         <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
           <li><a className="text-accent-ink underline" href="https://search.google.com/search-console/" target="_blank" rel="noopener noreferrer">Open Google Search Console</a></li>
           <li><a className="text-accent-ink underline" href={`${SITE_URL}/sitemap.xml`} target="_blank" rel="noopener noreferrer">View XML sitemap</a></li>
@@ -61,6 +67,7 @@ export default async function SeoAdminPage() {
 
       <section className={card}>
         <h2 className="text-lg font-semibold">Published article checks</h2>
+        <p className="mt-1 text-sm text-muted">The article title is the page H1. Use H2 for main sections and H3–H6 only for nested sections; do not force every heading level into an article.</p>
         <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
           {checks.map(([label, key]) => (
             <li key={key} className="flex items-center justify-between gap-3 border-b border-line py-2">

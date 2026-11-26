@@ -7,10 +7,12 @@ import {
   adminArticleTagSuggestionsQuery,
   adminNewsletterCampaignInput,
   adminNewsletterSubscribersQuery,
+  auditArticleHeadings,
   canTransition,
   categoryInput,
   countryCodeSchema,
   getYouTubeVideoId,
+  hasIndexableTrendDescription,
   listArticlesQuery,
   mediaListQuery,
   mediaMetadataInput,
@@ -35,6 +37,37 @@ describe('listArticlesQuery', () => {
     expect(listArticlesQuery.safeParse({ category: { $ne: 'x' } }).success).toBe(false);
   });
   it('caps limit', () => expect(listArticlesQuery.safeParse({ limit: 500 }).success).toBe(false));
+});
+
+describe('hasIndexableTrendDescription', () => {
+  it('only treats non-empty descriptions as indexable', () => {
+    expect(hasIndexableTrendDescription('A researched topic description.')).toBe(true);
+    expect(hasIndexableTrendDescription('  ')).toBe(false);
+    expect(hasIndexableTrendDescription(undefined)).toBe(false);
+  });
+});
+
+describe('auditArticleHeadings', () => {
+  it('accepts a single page title with an ordered section outline', () => {
+    expect(auditArticleHeadings('<h2>Section</h2><h3>Detail</h3><h4>Nested</h4><h5>Deeper</h5><h6>Deepest</h6><h2>Next section</h2>')).toEqual({
+      h1Count: 0,
+      sectionHeadingCount: 6,
+      skipsLevel: false,
+    });
+  });
+
+  it('flags extra H1s, missing section headings, and skipped levels', () => {
+    expect(auditArticleHeadings('<h1>Another title</h1><h4>Section</h4>')).toEqual({
+      h1Count: 1,
+      sectionHeadingCount: 1,
+      skipsLevel: true,
+    });
+    expect(auditArticleHeadings('<p>Body</p>')).toEqual({
+      h1Count: 0,
+      sectionHeadingCount: 0,
+      skipsLevel: false,
+    });
+  });
 });
 
 describe('article feedback validation', () => {

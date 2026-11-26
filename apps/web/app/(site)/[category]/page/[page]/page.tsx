@@ -35,6 +35,7 @@ export default async function CategoryPage({ params }: Props) {
   const category = await loadCategory(slug);
   const page = parsePageParam(rawPage);
   const data = await getArticles({ category: category.slug, page });
+  if (page > data.totalPages) notFound();
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <h1 className="font-serif text-4xl font-semibold">{category.name} - Page {page}</h1>

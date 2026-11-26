@@ -230,6 +230,29 @@ export interface TrendTopicDto {
   related: { slug: string; title: string }[];
 }
 
+export function hasIndexableTrendDescription(description?: string | null): boolean {
+  return Boolean(description?.trim());
+}
+
+export function auditArticleHeadings(html: string): {
+  h1Count: number;
+  sectionHeadingCount: number;
+  skipsLevel: boolean;
+} {
+  const levels = [...html.matchAll(/<h([1-6])\b[^>]*>/gi)].map((match) => Number(match[1]));
+  let previousLevel = 1;
+  let skipsLevel = false;
+  for (const level of levels) {
+    if (level > previousLevel + 1) skipsLevel = true;
+    previousLevel = level;
+  }
+  return {
+    h1Count: levels.filter((level) => level === 1).length,
+    sectionHeadingCount: levels.filter((level) => level > 1).length,
+    skipsLevel,
+  };
+}
+
 // ---------------------------------------------------------------- inputs
 export const objectIdSchema = z.string().regex(/^[a-fA-F0-9]{24}$/, 'Invalid id');
 const httpsUrl = z

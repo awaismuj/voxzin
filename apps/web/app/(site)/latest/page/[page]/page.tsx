@@ -24,6 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function LatestPage({ params }: Props) {
   const page = parsePageParam((await params).page);
   const data = await getArticles({ page });
+  if (page > data.totalPages) notFound();
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <h1 className="font-serif text-4xl font-semibold">Latest - Page {page}</h1>

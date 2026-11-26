@@ -1,28 +1,37 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { ApiError, getCountries, getTrendTopic } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { hasIndexableTrendDescription } from '@voxzin/shared';
 
-type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ country?: string }> };
+type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ country?: string | string[] }> };
 
-async function load(slug: string, country?: string) {
+async function load(slug: string) {
   try {
-    return await getTrendTopic(slug, country && /^[A-Z]{2}$/.test(country) ? country : undefined);
+    return await getTrendTopic(slug);
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 400)) notFound();
     throw e;
   }
 }
 
-export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-  const t = await load((await params).slug, (await searchParams).country);
-  return { title: t.title, description: t.description.slice(0, 155) || undefined, alternates: { canonical: `/trending/${t.slug}` } };
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const t = await load((await params).slug);
+  const indexable = hasIndexableTrendDescription(t.description);
+  return {
+    title: t.title,
+    description: t.description.slice(0, 155) || undefined,
+    alternates: { canonical: `/trending/${t.slug}` },
+    robots: { index: indexable, follow: true },
+  };
 }
 
 export default async function TopicPage({ params, searchParams }: Props) {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
+  if (query.country !== undefined) permanentRedirect(`/trending/${slug}`);
   const [t, countries] = await Promise.all([
-    load((await params).slug, (await searchParams).country),
+    load(slug),
     getCountries(),
   ]);
   const countryName = countries.find((country) => country.code === t.country)?.name ?? t.country;

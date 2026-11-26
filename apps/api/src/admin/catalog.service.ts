@@ -22,6 +22,9 @@ interface SeoAuditResult {
     descriptionsTooLong: number;
     missingImages: number;
     missingImageAlt: number;
+    missingSectionHeadings: number;
+    bodyH1Found: number;
+    skippedHeadingLevels: number;
     needsAttention: number;
   };
   articles: { id: string; slug: string; title: string; issues: string[] }[];
@@ -281,6 +284,62 @@ export class CatalogService {
           },
           imageUrl: { $trim: { input: { $ifNull: ['$featuredImage.url', ''] } } },
           imageAlt: { $trim: { input: { $ifNull: ['$featuredImage.alt', ''] } } },
+          headingLevels: {
+            $map: {
+              input: {
+                $regexFindAll: {
+                  input: { $ifNull: ['$content', ''] },
+                  regex: /<h([1-6])\b[^>]*>/i,
+                },
+              },
+              as: 'heading',
+              in: { $toInt: { $arrayElemAt: ['$$heading.captures', 0] } },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          sectionHeadingCount: {
+            $size: {
+              $filter: {
+                input: '$headingLevels',
+                as: 'level',
+                cond: { $gt: ['$$level', 1] },
+              },
+            },
+          },
+          bodyH1Count: {
+            $size: {
+              $filter: {
+                input: '$headingLevels',
+                as: 'level',
+                cond: { $eq: ['$$level', 1] },
+              },
+            },
+          },
+          headingLevelSkipped: {
+            $let: {
+              vars: {
+                outline: {
+                  $reduce: {
+                    input: '$headingLevels',
+                    initialValue: { previous: 1, skipsLevel: false },
+                    in: {
+                      previous: '$$this',
+                      skipsLevel: {
+                        $or: [
+                          '$$value.skipsLevel',
+                          { $gt: ['$$this', { $add: ['$$value.previous', 1] }] },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+              in: '$$outline.skipsLevel',
+            },
+          },
         },
       },
       {
@@ -303,6 +362,9 @@ export class CatalogService {
               { $cond: ['$descriptionTooLong', ['Shorten the meta description to 170 characters or fewer'], []] },
               { $cond: ['$imageMissing', ['Add a featured image'], []] },
               { $cond: ['$imageAltMissing', ['Add featured-image alt text'], []] },
+              { $cond: [{ $eq: ['$sectionHeadingCount', 0] }, ['Add section headings beginning at H2'], []] },
+              { $cond: [{ $gt: ['$bodyH1Count', 0] }, ['Keep the article title as the only H1'], []] },
+              { $cond: ['$headingLevelSkipped', ['Fix the heading outline so it does not skip levels'], []] },
             ],
           },
         },
@@ -320,6 +382,9 @@ export class CatalogService {
                 descriptionsTooLong: { $sum: { $cond: ['$descriptionTooLong', 1, 0] } },
                 missingImages: { $sum: { $cond: ['$imageMissing', 1, 0] } },
                 missingImageAlt: { $sum: { $cond: ['$imageAltMissing', 1, 0] } },
+                missingSectionHeadings: { $sum: { $cond: [{ $eq: ['$sectionHeadingCount', 0] }, 1, 0] } },
+                bodyH1Found: { $sum: { $cond: [{ $gt: ['$bodyH1Count', 0] }, 1, 0] } },
+                skippedHeadingLevels: { $sum: { $cond: ['$headingLevelSkipped', 1, 0] } },
                 needsAttention: { $sum: { $cond: [{ $gt: [{ $size: '$issues' }, 0] }, 1, 0] } },
               },
             },
@@ -338,7 +403,19 @@ export class CatalogService {
           summary: {
             $ifNull: [
               { $arrayElemAt: ['$summary', 0] },
-              { published: 0, titlesMissing: 0, titlesTooLong: 0, descriptionsMissing: 0, descriptionsTooLong: 0, missingImages: 0, missingImageAlt: 0, needsAttention: 0 },
+              {
+                published: 0,
+                titlesMissing: 0,
+                titlesTooLong: 0,
+                descriptionsMissing: 0,
+                descriptionsTooLong: 0,
+                missingImages: 0,
+                missingImageAlt: 0,
+                missingSectionHeadings: 0,
+                bodyH1Found: 0,
+                skippedHeadingLevels: 0,
+                needsAttention: 0,
+              },
             ],
           },
           articles: 1,

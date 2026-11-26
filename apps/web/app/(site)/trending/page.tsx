@@ -22,7 +22,7 @@ export default async function TrendingPage() {
           <ul className="grid gap-4 md:grid-cols-2">
             {topics.map((t) => (
               <li key={t.id} className="rounded-lg border border-line bg-surface p-5">
-                <Link href={`/trending/${t.slug}?country=${t.country}`} className="font-serif text-xl font-semibold hover:underline">{t.title}</Link>
+                <Link href={`/trending/${t.slug}`} className="font-serif text-xl font-semibold hover:underline">{t.title}</Link>
                 {t.description && <p className="mt-2 line-clamp-3 text-sm text-muted">{t.description}</p>}
                 <p className="mt-3 flex flex-wrap gap-x-4 text-xs text-muted">
                   <span>{t.category}</span>

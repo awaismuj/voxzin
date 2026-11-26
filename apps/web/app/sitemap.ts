@@ -1,22 +1,11 @@
 import type { MetadataRoute } from 'next';
 import { unstable_cache } from 'next/cache';
 import { getSitemapData } from '@/lib/api';
-import { absoluteUrl, SITE_URL } from '@/lib/site';
+import { absoluteUrl, isCanonicalArticle, SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
 const getCachedSitemapData = unstable_cache(getSitemapData, ['sitemap-data'], { revalidate: 300 });
-
-function isCanonicalArticle(article: { slug: string; canonicalUrl: string | null }) {
-  if (!article.canonicalUrl) return true;
-  const canonical = new URL(article.canonicalUrl);
-  const articleUrl = new URL(`/articles/${article.slug}`, SITE_URL);
-  canonical.hash = '';
-  articleUrl.hash = '';
-  canonical.pathname = canonical.pathname.replace(/\/+$/, '') || '/';
-  articleUrl.pathname = articleUrl.pathname.replace(/\/+$/, '') || '/';
-  return canonical.href === articleUrl.href;
-}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { articles, categories, latestPages, trendingTopics } = await getCachedSitemapData();

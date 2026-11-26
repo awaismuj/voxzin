@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState } from 'react';
-import { canTransition, getYouTubeVideoId, TRANSITIONS, type ArticleStatus, type Role } from '@voxzin/shared';
+import { auditArticleHeadings, canTransition, getYouTubeVideoId, TRANSITIONS, type ArticleStatus, type Role } from '@voxzin/shared';
 import { adminFetch } from '@/lib/admin-client';
 import { StoryFrame } from '@/components/story-frame';
 import { RichEditor } from './rich-editor';
@@ -77,11 +77,19 @@ function markdownToArticleHtml(markdown: string) {
       closeList();
       continue;
     }
-    const heading = line.match(/^\*\*(.+)\*\*$/);
-    if (heading) {
+    const markdownHeading = line.match(/^(#{1,6})\s+(.+?)\s*#*$/);
+    if (markdownHeading) {
       flushParagraph();
       closeList();
-      html.push(`<h3>${inline(heading[1]!)}</h3>`);
+      const level = Math.max(2, markdownHeading[1]!.length);
+      html.push(`<h${level}>${inline(markdownHeading[2]!)}</h${level}>`);
+      continue;
+    }
+    const boldHeading = line.match(/^\*\*(.+)\*\*$/);
+    if (boldHeading) {
+      flushParagraph();
+      closeList();
+      html.push(`<h2>${inline(boldHeading[1]!)}</h2>`);
       continue;
     }
     const unordered = line.match(/^[-*]\s+(.+)$/);
@@ -451,7 +459,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   const socialDescription = f.socialDescription?.trim() || metaDescription;
   const focusKeyword = f.focusKeyword?.trim().toLocaleLowerCase() ?? '';
   const containsFocusKeyword = (value: string) => Boolean(focusKeyword && value.toLocaleLowerCase().includes(focusKeyword));
-  const hasHeading = /<h[2-3]\b/i.test(f.content ?? '');
+  const headingAudit = auditArticleHeadings(f.content ?? '');
   const hasInternalLink = [...(f.content ?? '').matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)]
     .some(([, href]) => href!.startsWith('/') && !href!.startsWith('//') || /^https?:\/\/(?:www\.)?voxzin\.com(?:\/|$)/i.test(href!));
   const openingParagraph = articleText((f.content ?? '').match(/<p\b[^>]*>[\s\S]*?<\/p>/i)?.[0] ?? '');
@@ -464,7 +472,9 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     ] : []),
     { label: 'SEO title is no longer than 60 characters (a useful target)', ready: seoTitle.length > 0 && seoTitle.length <= 60 },
     { label: 'Description is a useful length (120–160 characters is a guide)', ready: metaDescription.length >= 120 && metaDescription.length <= 160 },
-    { label: 'Article has a clear section heading (H2 or H3)', ready: hasHeading },
+    { label: 'Keep the article title as the page’s only H1', ready: headingAudit.h1Count === 0 },
+    { label: 'Add section headings beginning at H2', ready: headingAudit.sectionHeadingCount > 0 },
+    { label: 'Keep heading levels in sequence (for example, H2 → H3)', ready: !headingAudit.skipsLevel },
     { label: 'Article has at least 300 words for a substantial story', ready: wordCount >= 300 },
     { label: 'Link to a relevant VoxZin article where useful', ready: hasInternalLink },
     { label: 'Add descriptive featured-image alt text', ready: Boolean(f.featuredImage?.url && f.featuredImage.alt.trim()) },

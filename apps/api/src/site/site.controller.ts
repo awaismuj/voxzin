@@ -1,5 +1,6 @@
 import { Controller, Get, Header } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { hasIndexableTrendDescription } from '@voxzin/shared';
 import type { M } from '../common/types';
 
 @Controller()
@@ -25,18 +26,18 @@ export class SiteController {
     const [rows, activeCategories, articleCount, topics] = await Promise.all([
       this.articles
         .find(filter)
-        .select('slug updatedAt canonicalUrl featuredImage.url')
+        .select('slug title publishedAt updatedAt canonicalUrl featuredImage.url')
         .sort({ publishedAt: -1 })
         .limit(50_000)
-        .lean<{ slug: string; updatedAt: Date; canonicalUrl?: string; featuredImage?: { url?: string } }[]>(),
+        .lean<{ slug: string; title: string; publishedAt: Date; updatedAt: Date; canonicalUrl?: string; featuredImage?: { url?: string } }[]>(),
       this.categories.find({ isActive: true }).select('_id slug').lean<{ _id: unknown; slug: string }[]>(),
       this.articles.countDocuments(filter),
       this.trendingTopics
         .find({ status: 'approved' })
-        .select('slug lastUpdatedAt')
+        .select('slug lastUpdatedAt description')
         .sort({ lastUpdatedAt: -1 })
         .limit(50_000)
-        .lean<{ slug: string; lastUpdatedAt: Date }[]>(),
+        .lean<{ slug: string; lastUpdatedAt: Date; description?: string }[]>(),
     ]);
     const counts = activeCategories.length
       ? await this.articles.aggregate<{ _id: unknown; count: number }>([
@@ -46,14 +47,17 @@ export class SiteController {
       : [];
     const byCategory = new Map(counts.map((c) => [String(c._id), c.count]));
     const topicsBySlug = new Map<string, { slug: string; updatedAt: string }>();
+    const seenTopicSlugs = new Set<string>();
     for (const topic of topics) {
-      if (!topicsBySlug.has(topic.slug)) {
-        topicsBySlug.set(topic.slug, { slug: topic.slug, updatedAt: topic.lastUpdatedAt.toISOString() });
-      }
+      if (seenTopicSlugs.has(topic.slug) || !hasIndexableTrendDescription(topic.description)) continue;
+      seenTopicSlugs.add(topic.slug);
+      topicsBySlug.set(topic.slug, { slug: topic.slug, updatedAt: topic.lastUpdatedAt.toISOString() });
     }
     return {
       articles: rows.map((r) => ({
         slug: r.slug,
+        title: r.title,
+        publishedAt: r.publishedAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
         canonicalUrl: r.canonicalUrl ?? null,
         imageUrl: r.featuredImage?.url ?? null,

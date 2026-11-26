@@ -44,10 +44,9 @@ export const getArticles = (params: { category?: string; page?: number }) => {
 export const getSearch = (q: string, page = 1) =>
   request<Paginated<ArticleSummary>>(`/search?${new URLSearchParams({ q, ...(page > 1 ? { page: String(page) } : {}) })}`, 30);
 export const getTrending = (country: string) => request<TrendTopicDto[]>(`/trending?country=${encodeURIComponent(country)}`, 120);
-export const getTrendTopic = cache((slug: string, country?: string) =>
-  request<TrendTopicDto>(`/trending/${encodeURIComponent(slug)}${country ? `?country=${encodeURIComponent(country)}` : ''}`, 120));
+export const getTrendTopic = cache((slug: string) => request<TrendTopicDto>(`/trending/${encodeURIComponent(slug)}`, 120));
 export const getSitemapData = () => request<{
-  articles: { slug: string; updatedAt: string; canonicalUrl: string | null; imageUrl: string | null }[];
+  articles: { slug: string; title: string; publishedAt: string; updatedAt: string; canonicalUrl: string | null; imageUrl: string | null }[];
   trendingTopics: { slug: string; updatedAt: string }[];
   categories: { slug: string; pages: number }[];
   latestPages: number;
