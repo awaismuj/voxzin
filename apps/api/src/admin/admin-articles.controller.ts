@@ -52,6 +52,16 @@ export class AdminArticlesController {
     return this.service.transition(req.auth.user, articleId, body.status, body.scheduledAt, req.ip);
   }
 
+  @Post(':id/publish')
+  @HttpCode(200)
+  publish(
+    @Req() req: AuthedRequest,
+    @Param('id', id) articleId: string,
+    @Body(new ZodPipe(articlePatchInput)) body: ArticlePatchInput,
+  ) {
+    return this.service.publish(req.auth.user, articleId, body, req.ip);
+  }
+
   @Delete(':id')
   @HttpCode(204)
   @Roles('super_admin', 'admin')

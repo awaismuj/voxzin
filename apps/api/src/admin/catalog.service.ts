@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ROLE_RANK, slugify, type Role } from '@voxzin/shared';
 import { z } from 'zod';
@@ -31,7 +31,7 @@ interface SeoAuditResult {
 }
 
 @Injectable()
-export class CatalogService {
+export class CatalogService implements OnModuleInit {
   constructor(
     @InjectModel('Category') private readonly categories: M,
     @InjectModel('Country') private readonly countries: M,
@@ -45,6 +45,14 @@ export class CatalogService {
     private readonly auth: AuthService,
     private readonly mail: MailService,
   ) {}
+
+  async onModuleInit() {
+    await this.authors.updateOne(
+      { slug: 'voxzin' },
+      { $setOnInsert: { name: 'VoxZin', slug: 'voxzin', designation: 'Editorial Team' } },
+      { upsert: true },
+    );
+  }
 
   // ---- categories
   listCategories() {
@@ -94,7 +102,7 @@ export class CatalogService {
 
   // ---- authors
   listAuthors() {
-    return this.authors.find().sort({ name: 1 }).lean();
+    return this.authors.find().select('name slug').sort({ name: 1 }).lean();
   }
   async saveAuthor(actor: AuthUser, input: z.infer<typeof authorInput>, id?: string) {
     try {

@@ -166,10 +166,10 @@ export const PRIVILEGED_ROLES: readonly Role[] = ['super_admin', 'admin', 'edito
 export const ROLE_RANK: Record<Role, number> = { super_admin: 4, admin: 3, editor: 2, author: 1 };
 
 export const TRANSITIONS: Record<ArticleStatus, readonly ArticleStatus[]> = {
-  research: ['idea', 'draft'],
-  idea: ['research', 'draft'],
-  draft: ['research', 'idea', 'in_review'],
-  in_review: ['draft', 'approved'],
+  research: ['idea', 'draft', 'published'],
+  idea: ['research', 'draft', 'published'],
+  draft: ['research', 'idea', 'in_review', 'published'],
+  in_review: ['draft', 'approved', 'published'],
   approved: ['draft', 'scheduled', 'published'],
   scheduled: ['approved', 'published'],
   published: ['draft', 'archived'],
@@ -178,7 +178,7 @@ export const TRANSITIONS: Record<ArticleStatus, readonly ArticleStatus[]> = {
 export const AUTHOR_EDITABLE: readonly ArticleStatus[] = ['research', 'idea', 'draft'];
 const AUTHOR_TARGETS: readonly ArticleStatus[] = ['research', 'idea', 'draft', 'in_review'];
 
-/** Publishing always passes through `approved`: authors can never approve or publish. */
+/** Authors cannot approve or publish; editorial roles may publish a draft without a separate approval step. */
 export function canTransition(role: Role, from: ArticleStatus, to: ArticleStatus): boolean {
   if (!TRANSITIONS[from].includes(to)) return false;
   if (role === 'author') return AUTHOR_EDITABLE.includes(from) && AUTHOR_TARGETS.includes(to);

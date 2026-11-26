@@ -9,7 +9,7 @@ export default async function EditArticle({ params }: { params: Promise<{ id: st
   try {
     const [me, article, categories, authors] = await Promise.all([
       getMe(), adminGet<ArticleDoc & { id: string }>(`/admin/articles/${id}`),
-      adminGet<{ _id: string; name: string }[]>('/admin/categories'), adminGet<{ _id: string; name: string }[]>('/admin/authors'),
+      adminGet<{ _id: string; name: string }[]>('/admin/categories'), adminGet<{ _id: string; name: string; slug: string }[]>('/admin/authors'),
     ]);
     return (
       <div>

@@ -17,7 +17,7 @@ export interface ArticleDoc {
   seoTitle?: string; metaDescription?: string; socialTitle?: string; socialDescription?: string; focusKeyword?: string; canonicalUrl?: string; isFeatured?: boolean; isBreaking?: boolean;
   status?: ArticleStatus; slug?: string; aiAssisted?: boolean;
 }
-type Opt = { _id: string; name: string };
+type Opt = { _id: string; name: string; slug?: string };
 type TagSuggestion = { tag: string; topic: string; updatedAt: string; trendMetric: string | null };
 
 const parseSources = (text: string) =>
@@ -199,7 +199,15 @@ function articleText(html: string) {
 
 export function ArticleEditor({ initial, categories, authors, role }: { initial?: ArticleDoc; categories: Opt[]; authors: Opt[]; role: Role }) {
   const router = useRouter();
-  const [f, setF] = useState<ArticleDoc>({ tags: [], sources: [], isFeatured: false, isBreaking: false, ...initial });
+  const defaultAuthorId = role === 'author' ? undefined : authors.find((author) => author.slug === 'voxzin')?._id;
+  const [f, setF] = useState<ArticleDoc>({
+    tags: [],
+    sources: [],
+    isFeatured: true,
+    isBreaking: true,
+    author: defaultAuthorId,
+    ...initial,
+  });
   const [sourcesText, setSourcesText] = useState((initial?.sources ?? []).map((s) => `${s.title} | ${s.url}`).join('\n'));
   const [tagsText, setTagsText] = useState((initial?.tags ?? []).join(', '));
   const [tab, setTab] = useState<'edit' | 'preview'>('edit');
@@ -257,6 +265,32 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     } catch (e) { setMsg({ kind: 'error', text: e instanceof Error ? e.message : 'Could not change status' }); } finally { setBusy(false); }
   }
 
+  async function publishNow() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      let articleId = f.id;
+      if (!articleId) {
+        const created = await adminFetch<{ id: string; slug: string; warnings: { id: string; title: string }[] }>('/admin/articles', {
+          method: 'POST',
+          body: payload(),
+        });
+        articleId = created.id;
+        setF((current) => ({ ...current, id: created.id, slug: created.slug }));
+        setWarnings(created.warnings ?? []);
+        router.replace(`/admin/articles/${created.id}`);
+      }
+      await adminFetch(`/admin/articles/${articleId}/publish`, { method: 'POST', body: payload() });
+      set('status', 'published');
+      setMsg({ kind: 'ok', text: 'Published.' });
+      router.refresh();
+    } catch (e) {
+      setMsg({ kind: 'error', text: e instanceof Error ? e.message : 'Could not publish article' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function runAi() {
     setAiOut('Thinking…');
     try {
@@ -277,6 +311,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     excerpt: string;
     content: string;
     categoryId?: string;
+    authorId?: string;
     tags: string[];
     sources: { title: string; url: string }[];
     featuredImage?: { url: string; alt: string };
@@ -407,6 +442,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
       excerpt,
       content,
       categoryId,
+      authorId: f.author || undefined,
       tags: importedTags,
       sources: importedSources,
       featuredImage,
@@ -447,6 +483,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   }
 
   const next = f.id ? TRANSITIONS[status].filter((to) => canTransition(role, status, to)) : [];
+  const canPublishNow = !isAuthor && (!f.id || canTransition(role, status, 'published'));
   const youtubeId = f.youtubeUrl ? getYouTubeVideoId(f.youtubeUrl) : null;
   const bodyText = articleText(f.content ?? '');
   const tagQuery = [f.title, f.excerpt, bodyText].filter(Boolean).join(' ').slice(0, 2000);
@@ -613,10 +650,12 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
           <p className="text-sm text-muted">Status</p>
           <p className="text-lg font-semibold capitalize">{f.id ? status.replace('_', ' ') : 'New'}</p>
           <button onClick={save} disabled={busy || locked} className={`${btn} mt-3 w-full`}>{busy ? 'Working…' : 'Save'}</button>
+          {canPublishNow && <button type="button" onClick={() => void publishNow()} disabled={busy || locked} className={`${btn} mt-2 w-full`}>{busy ? 'Working…' : 'Publish now'}</button>}
+          {canPublishNow && <p className="mt-2 text-xs text-muted">Saves your latest edits and publishes immediately. A source is still required; editorial SEO recommendations do not block publishing.</p>}
           {next.length > 0 && (
             <div className="mt-4 space-y-2">
               {next.includes('scheduled') && <input type="datetime-local" aria-label="Publish time" className={input} value={when} onChange={(e) => setWhen(e.target.value)} />}
-              {next.map((to) => <button key={to} disabled={busy || (to === 'scheduled' && !when)} onClick={() => move(to)} className={`${btnGhost} w-full capitalize`}>{to === 'published' && status === 'published' ? 'Unpublish' : `Move to ${to.replace('_', ' ')}`}</button>)}
+              {next.filter((to) => to !== 'published').map((to) => <button key={to} disabled={busy || (to === 'scheduled' && !when)} onClick={() => move(to)} className={`${btnGhost} w-full capitalize`}>{`Move to ${to.replace('_', ' ')}`}</button>)}
             </div>
           )}
           {locked && <p className="mt-3 text-sm text-muted">This article is with an editor, so it’s read-only for you.</p>}
@@ -636,7 +675,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
           {!isAuthor && (
             <div><label className={label} htmlFor="auth">Author</label>
               <select id="auth" className={input} value={f.author ?? ''} onChange={(e) => set('author', e.target.value)}>
-                <option value="">Me</option>{authors.map((a) => <option key={a._id} value={a._id}>{a.name}</option>)}
+                <option value="">Choose author</option>{authors.map((a) => <option key={a._id} value={a._id}>{a.name}{a.slug === 'voxzin' ? ' (default)' : ''}</option>)}
               </select></div>
           )}
           <div className="space-y-2">
@@ -685,6 +724,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
             <>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(f.isFeatured)} onChange={(e) => set('isFeatured', e.target.checked)} /> Featured on the homepage</label>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(f.isBreaking)} onChange={(e) => set('isBreaking', e.target.checked)} /> Show in breaking ticker</label>
+              <p className="text-xs text-muted">Both start checked for new articles. Turn either off when the story should not be featured or marked as breaking.</p>
             </>
           )}
         </section>

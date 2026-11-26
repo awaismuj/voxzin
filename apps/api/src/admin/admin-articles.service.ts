@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   AUTHOR_EDITABLE, canTransition, slugify,
@@ -97,6 +97,7 @@ export class AdminArticlesService {
   constructor(
     @InjectModel('Article') private readonly articles: M,
     @InjectModel('Category') private readonly categories: M,
+    @InjectModel('Author') private readonly authors: M,
     @InjectModel('TrendingTopic') private readonly trends: M,
     private readonly audit: AuditService,
     private readonly indexNow: IndexNowService,
@@ -197,7 +198,10 @@ export class AdminArticlesService {
   }
 
   async create(user: AuthUser, input: ArticleInput, ip?: string) {
-    const authorId = input.authorId ?? user.authorId?.toString();
+    const systemAuthor = user.role === 'author'
+      ? undefined
+      : await this.authors.findOne({ slug: 'voxzin' }).select('_id').lean<{ _id: { toString(): string } }>();
+    const authorId = input.authorId ?? (user.role === 'author' ? user.authorId?.toString() : systemAuthor?._id.toString());
     if (!authorId) throw new BadRequestException('Choose an author for this article');
     if (user.role === 'author' && authorId !== user.authorId?.toString()) throw new ForbiddenException('Authors can only publish under their own profile');
     if (!(await this.categories.exists({ _id: input.categoryId, isActive: true }))) throw new BadRequestException('Choose an active category');
@@ -239,6 +243,40 @@ export class AdminArticlesService {
     await this.audit.log(user._id.toString(), `article.${to}`, { type: 'article', id }, { from: row.status }, ip);
     if (to === 'published') this.indexNow.notify(`/articles/${row.slug}`, '/', '/latest');
     return { id, status: to };
+  }
+
+  async publish(user: AuthUser, id: string, input: ArticlePatchInput, ip?: string) {
+    const row = await this.owned(user, id);
+    if (!canTransition(user.role, row.status, 'published')) {
+      throw new BadRequestException(`An article in "${row.status}" can't be published with your role`);
+    }
+    if (input.categoryId && !(await this.categories.exists({ _id: input.categoryId, isActive: true }))) {
+      throw new BadRequestException('Choose an active category');
+    }
+    const sources = input.sources ?? row.sources;
+    if (!sources?.length) {
+      throw new BadRequestException('Add at least one source before publishing');
+    }
+
+    const result = await this.articles.updateOne(
+      { _id: id, status: row.status, ...this.scope(user) },
+      {
+        $set: {
+          ...this.fields(input, user),
+          status: 'published',
+          publishedAt: row.publishedAt ?? new Date(),
+          updatedBy: user._id,
+        },
+      },
+    );
+    if (result.matchedCount !== 1) throw new ConflictException('Article status changed; refresh and try publishing again');
+
+    if (Object.keys(input).length > 0) {
+      await this.audit.log(user._id.toString(), 'article.update', { type: 'article', id }, { fields: Object.keys(input) }, ip);
+    }
+    await this.audit.log(user._id.toString(), 'article.published', { type: 'article', id }, { from: row.status }, ip);
+    this.indexNow.notify(`/articles/${row.slug}`, '/', '/latest');
+    return { id, status: 'published' as const };
   }
 
   async remove(user: AuthUser, id: string, ip?: string) {

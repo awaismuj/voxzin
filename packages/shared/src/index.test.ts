@@ -130,10 +130,13 @@ describe('workflow', () => {
     expect(canTransition('author', 'draft', 'in_review')).toBe(true);
     expect(canTransition('author', 'approved', 'published')).toBe(false);
   });
-  it('publishing requires approval first', () => {
-    expect(canTransition('editor', 'draft', 'published')).toBe(false);
+  it('allows editorial roles to publish drafts directly while authors still require review', () => {
+    expect(canTransition('editor', 'draft', 'published')).toBe(true);
+    expect(canTransition('editor', 'research', 'published')).toBe(true);
+    expect(canTransition('admin', 'in_review', 'published')).toBe(true);
     expect(canTransition('editor', 'in_review', 'approved')).toBe(true);
     expect(canTransition('editor', 'approved', 'published')).toBe(true);
+    expect(canTransition('author', 'draft', 'published')).toBe(false);
   });
 });
 
