@@ -1,9 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
-import { auditArticleHeadings, canTransition, getYouTubeVideoId, TRANSITIONS, type ArticleStatus, type Role } from '@voxzin/shared';
+import { useEffect, useState } from 'react';
+import { auditArticleHeadings, canTransition, getYouTubeVideoId, slugify, TRANSITIONS, type ArticleStatus, type Role } from '@voxzin/shared';
 import { adminFetch } from '@/lib/admin-client';
 import { StoryFrame } from '@/components/story-frame';
 import { RichEditor } from './rich-editor';
@@ -19,6 +20,15 @@ export interface ArticleDoc {
 }
 type Opt = { _id: string; name: string; slug?: string };
 type TagSuggestion = { tag: string; topic: string; updatedAt: string; trendMetric: string | null };
+type RelatedArticle = { id: string; title: string; slug: string; excerpt: string };
+type SeoAssistantResult = {
+  duplicates: { title: string[]; description: string[]; slug: boolean };
+  related: RelatedArticle[];
+};
+type ArticleNavigation = {
+  previous: { id: string; title: string } | null;
+  next: { id: string; title: string } | null;
+};
 
 const parseSources = (text: string) =>
   text
@@ -197,7 +207,13 @@ function articleText(html: string) {
     .trim();
 }
 
-export function ArticleEditor({ initial, categories, authors, role }: { initial?: ArticleDoc; categories: Opt[]; authors: Opt[]; role: Role }) {
+export function ArticleEditor({ initial, categories, authors, role, navigation }: {
+  initial?: ArticleDoc;
+  categories: Opt[];
+  authors: Opt[];
+  role: Role;
+  navigation?: ArticleNavigation;
+}) {
   const router = useRouter();
   const defaultAuthorId = role === 'author' ? undefined : authors.find((author) => author.slug === 'voxzin')?._id;
   const [f, setF] = useState<ArticleDoc>({
@@ -220,6 +236,8 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[]>([]);
   const [tagSuggestionsBusy, setTagSuggestionsBusy] = useState(false);
   const [tagSuggestionsMessage, setTagSuggestionsMessage] = useState<{ kind: 'status' | 'error'; text: string } | null>(null);
+  const [seoAssistant, setSeoAssistant] = useState<SeoAssistantResult | null>(null);
+  const [seoAssistantError, setSeoAssistantError] = useState('');
   const [importText, setImportText] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const set = <K extends keyof ArticleDoc>(k: K, v: ArticleDoc[K]) => setF((p) => ({ ...p, [k]: v }));
@@ -228,7 +246,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   const locked = isAuthor && !['research', 'idea', 'draft'].includes(status) && Boolean(f.id);
 
   const payload = () => ({
-    title: f.title, subtitle: f.subtitle || undefined, excerpt: f.excerpt, content: f.content,
+    title: f.title, slug: f.slug || (f.title ? slugify(f.title) : undefined), subtitle: f.subtitle || undefined, excerpt: f.excerpt, content: f.content,
     categoryId: f.category, authorId: f.author || undefined,
     tags: tagsText.split(',').map((t) => t.trim()).filter(Boolean),
     sources: parseSources(sourcesText),
@@ -492,32 +510,80 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
   const wordCount = bodyText ? bodyText.match(/[\p{L}\p{N}]+(?:[-'’][\p{L}\p{N}]+)*/gu)?.length ?? 0 : 0;
   const seoTitle = f.seoTitle?.trim() || f.title?.trim() || '';
   const metaDescription = f.metaDescription?.trim() || f.excerpt?.trim() || '';
+  const articleSlug = f.slug || (f.title ? slugify(f.title) : '');
   const socialTitle = f.socialTitle?.trim() || seoTitle;
   const socialDescription = f.socialDescription?.trim() || metaDescription;
-  const focusKeyword = f.focusKeyword?.trim().toLocaleLowerCase() ?? '';
-  const containsFocusKeyword = (value: string) => Boolean(focusKeyword && value.toLocaleLowerCase().includes(focusKeyword));
+  const focusKeyword = f.focusKeyword?.trim() ?? '';
+  const containsFocusKeyword = (value: string) => Boolean(focusKeyword && value.toLocaleLowerCase().includes(focusKeyword.toLocaleLowerCase()));
   const headingAudit = auditArticleHeadings(f.content ?? '');
-  const hasInternalLink = [...(f.content ?? '').matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)]
+  const bodyHtml = f.content ?? '';
+  const hasInternalLink = [...bodyHtml.matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)]
     .some(([, href]) => href!.startsWith('/') && !href!.startsWith('//') || /^https?:\/\/(?:www\.)?voxzin\.com(?:\/|$)/i.test(href!));
-  const openingParagraph = articleText((f.content ?? '').match(/<p\b[^>]*>[\s\S]*?<\/p>/i)?.[0] ?? '');
+  const openingParagraph = articleText(bodyHtml.match(/<p\b[^>]*>[\s\S]*?<\/p>/i)?.[0] ?? '');
+  const bodyImages = [...bodyHtml.matchAll(/<img\b[^>]*>/gi)].map(([image]) => image);
+  const everyImageHasAlt = bodyImages.every((image) => {
+    const alt = image.match(/\balt=(["'])(.*?)\1/i)?.[2];
+    return Boolean(alt?.trim());
+  });
+  const anchorTexts = [...bodyHtml.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)]
+    .map(([, text]) => articleText(text ?? '').toLocaleLowerCase());
+  const hasUnhelpfulLinkText = anchorTexts.some((text) => /^(?:click here|here|read more|this link)$/.test(text));
+  const paragraphs = [...bodyHtml.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)]
+    .map(([, paragraph]) => articleText(paragraph ?? '').split(/\s+/).filter(Boolean).length);
+  const phraseOccurrences = focusKeyword
+    ? bodyText.toLocaleLowerCase().split(focusKeyword.toLocaleLowerCase()).length - 1
+    : 0;
+  const phraseRepeatedTooMuch = focusKeyword.length > 0
+    && phraseOccurrences > Math.max(3, Math.floor(wordCount / 100))
+    && phraseOccurrences / Math.max(1, wordCount) > 0.025;
+  const duplicate = seoAssistant?.duplicates;
   const checks = [
-    ...(focusKeyword ? [
-      { label: 'Use the focus phrase in the headline', ready: containsFocusKeyword(f.title ?? '') },
-      { label: 'Use the focus phrase in the SEO title', ready: containsFocusKeyword(seoTitle) },
-      { label: 'Use the focus phrase naturally in the opening paragraph', ready: containsFocusKeyword(openingParagraph) },
-      { label: 'Use the focus phrase naturally in the article', ready: containsFocusKeyword(bodyText) },
-    ] : []),
-    { label: 'SEO title is no longer than 60 characters (a useful target)', ready: seoTitle.length > 0 && seoTitle.length <= 60 },
-    { label: 'Description is a useful length (120–160 characters is a guide)', ready: metaDescription.length >= 120 && metaDescription.length <= 160 },
-    { label: 'Keep the article title as the page’s only H1', ready: headingAudit.h1Count === 0 },
-    { label: 'Add section headings beginning at H2', ready: headingAudit.sectionHeadingCount > 0 },
-    { label: 'Keep heading levels in sequence (for example, H2 → H3)', ready: !headingAudit.skipsLevel },
-    { label: 'Article has at least 300 words for a substantial story', ready: wordCount >= 300 },
-    { label: 'Link to a relevant VoxZin article where useful', ready: hasInternalLink },
-    { label: 'Add descriptive featured-image alt text', ready: Boolean(f.featuredImage?.url && f.featuredImage.alt.trim()) },
-    { label: 'Add at least one source', ready: parseSources(sourcesText).length > 0 },
+    { label: 'SEO title is 15–65 characters', fix: 'Write a clear title that fits this range.', ready: seoTitle.length >= 15 && seoTitle.length <= 65 },
+    { label: 'Meta description is 50–160 characters', fix: 'Summarize what the reader will find in this article.', ready: metaDescription.length >= 50 && metaDescription.length <= 160 },
+    { label: 'Slug is short, readable, and hyphenated', fix: 'Use a few lowercase words separated by hyphens.', ready: Boolean(f.slug && f.slug.length <= 80 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(f.slug)) },
+    { label: 'Choose a main search phrase', fix: 'Enter the central topic readers might search for.', ready: Boolean(focusKeyword) },
+    { label: 'Phrase appears naturally in the title', fix: 'Include the phrase in the headline or SEO title where it reads naturally.', ready: !focusKeyword || containsFocusKeyword(`${f.title ?? ''} ${seoTitle}`) },
+    { label: 'Phrase appears in the first paragraph', fix: 'Mention the topic near the start if it fits the story.', ready: !focusKeyword || containsFocusKeyword(openingParagraph) },
+    { label: 'Search phrase is not repeated too often', fix: 'Replace repeated phrases with natural wording and useful detail.', ready: !phraseRepeatedTooMuch },
+    { label: 'Long articles have section headings', fix: 'For longer stories, break the article into sections with helpful headings.', ready: wordCount <= 600 || headingAudit.sectionHeadingCount > 0 },
+    { label: 'Paragraphs are easy to scan', fix: 'Split paragraphs longer than about 120 words.', ready: !paragraphs.some((length) => length > 120) },
+    { label: 'Article has an image', fix: 'Add a relevant featured image if one helps explain the story.', ready: Boolean(f.featuredImage?.url || bodyImages.length) },
+    { label: 'Every article image has alt text', fix: 'Describe each image in its alt-text field.', ready: everyImageHasAlt && (!f.featuredImage?.url || Boolean(f.featuredImage.alt.trim())) },
+    { label: 'Link to a related article on your site', fix: 'Add a useful internal link where it helps the reader.', ready: hasInternalLink },
+    { label: 'Link text describes its destination', fix: 'Replace vague text such as “click here” with a descriptive link.', ready: !hasUnhelpfulLinkText },
+    { label: 'SEO title is not already in use', fix: duplicate?.title.length ? `This title matches: ${duplicate.title.join(', ')}.` : 'Make the title distinct from other articles.', ready: !duplicate?.title.length },
+    { label: 'Meta description is not already in use', fix: duplicate?.description.length ? `This description matches: ${duplicate.description.join(', ')}.` : 'Write a description specific to this story.', ready: !duplicate?.description.length },
+    { label: 'Slug is not already in use', fix: 'Choose another URL slug; old article URLs remain redirected.', ready: !duplicate?.slug },
   ];
   const readyChecks = checks.filter((check) => check.ready).length;
+  const checklistScore = Math.round((readyChecks / checks.length) * 100);
+
+  useEffect(() => {
+    let active = true;
+    const timer = setTimeout(async () => {
+      const query = new URLSearchParams();
+      if (seoTitle) query.set('title', seoTitle);
+      if (metaDescription) query.set('description', metaDescription);
+      if (articleSlug) query.set('slug', articleSlug);
+      if (focusKeyword) query.set('focusPhrase', focusKeyword);
+      const relatedQuery = [f.title, f.excerpt].filter(Boolean).join(' ').slice(0, 500);
+      if (relatedQuery) query.set('q', relatedQuery);
+      if (f.id) query.set('excludeId', f.id);
+      try {
+        const result = await adminFetch<SeoAssistantResult>(`/admin/articles/seo-assistant?${query}`);
+        if (active) {
+          setSeoAssistant(result);
+          setSeoAssistantError('');
+        }
+      } catch (error) {
+        if (active) setSeoAssistantError(error instanceof Error ? error.message : 'SEO checks could not be loaded.');
+      }
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [f.title, f.excerpt, f.metaDescription, f.slug, f.focusKeyword, f.id, seoTitle, metaDescription, focusKeyword, articleSlug]);
 
   async function suggestTags() {
     if (tagQuery.trim().length < 20) {
@@ -551,6 +617,12 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
     }
     setTagsText([...selected, tag].join(', '));
     setTagSuggestionsMessage({ kind: 'status', text: `Added “${tag}”. Review the tag before saving.` });
+  }
+
+  function addRelatedArticleLink(article: RelatedArticle) {
+    const link = `<p><a href="/articles/${article.slug}">${escapeHtml(article.title)}</a></p>`;
+    set('content', `${f.content ?? ''}${link}`);
+    setMsg({ kind: 'ok', text: `Added a link to “${article.title}”. Save the article to keep it.` });
   }
 
   return (
@@ -649,6 +721,16 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
         <section className={card}>
           <p className="text-sm text-muted">Status</p>
           <p className="text-lg font-semibold capitalize">{f.id ? status.replace('_', ' ') : 'New'}</p>
+          {navigation && (
+            <nav aria-label="Article navigation" className="mt-3 flex flex-wrap gap-2">
+              {navigation.previous
+                ? <Link className="rounded border border-line px-2 py-1 text-xs hover:bg-bg" href={`/admin/articles/${navigation.previous.id}`} title={navigation.previous.title}>← Previous</Link>
+                : <span className="rounded border border-line px-2 py-1 text-xs text-muted">← Previous</span>}
+              {navigation.next
+                ? <Link className="rounded border border-line px-2 py-1 text-xs hover:bg-bg" href={`/admin/articles/${navigation.next.id}`} title={navigation.next.title}>Next →</Link>
+                : <span className="rounded border border-line px-2 py-1 text-xs text-muted">Next →</span>}
+            </nav>
+          )}
           <button onClick={save} disabled={busy || locked} className={`${btn} mt-3 w-full`}>{busy ? 'Working…' : 'Save'}</button>
           {canPublishNow && <button type="button" onClick={() => void publishNow()} disabled={busy || locked} className={`${btn} mt-2 w-full`}>{busy ? 'Working…' : 'Publish now'}</button>}
           {canPublishNow && <p className="mt-2 text-xs text-muted">Saves your latest edits and publishes immediately. A source is still required; editorial SEO recommendations do not block publishing.</p>}
@@ -740,14 +822,19 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
             <p className="mt-1 text-xs text-muted">Use one natural phrase to guide the checks below. Avoid repeating it unnaturally.</p>
           </div>
           <div>
+            <label className={label} htmlFor="article-slug">URL slug</label>
+            <input id="article-slug" maxLength={120} className={input} value={articleSlug} onChange={(e) => set('slug', e.target.value)} placeholder="article-url" />
+            <p className="mt-1 text-xs text-muted">Short, readable, lowercase words with hyphens. Changing a published slug keeps the old URL working with a permanent redirect.</p>
+          </div>
+          <div>
             <label className={label} htmlFor="seot">SEO title</label>
             <input id="seot" maxLength={70} className={input} value={f.seoTitle ?? ''} onChange={(e) => set('seoTitle', e.target.value)} placeholder={f.title || 'Search result headline'} />
-            <p className="mt-1 text-xs text-muted">{(f.seoTitle || f.title || '').length}/70 characters · Google may rewrite titles; prioritize accuracy and clarity.</p>
+            <p className="mt-1 text-xs text-muted">{seoTitle.length}/70 characters · Google may rewrite titles; prioritize accuracy and clarity.</p>
           </div>
           <div>
             <label className={label} htmlFor="seod">Meta description</label>
             <textarea id="seod" rows={3} maxLength={170} className={input} value={f.metaDescription ?? ''} onChange={(e) => set('metaDescription', e.target.value)} placeholder={f.excerpt || 'Summarize what readers will learn'} />
-            <p className="mt-1 text-xs text-muted">{(f.metaDescription || f.excerpt || '').length}/170 characters · describe this story specifically; Google may show a different snippet.</p>
+            <p className="mt-1 text-xs text-muted">{metaDescription.length}/170 characters · describe this story specifically; Google may show a different snippet.</p>
           </div>
           <div>
             <label className={label} htmlFor="social-title">Social share title (optional)</label>
@@ -765,7 +852,7 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
               <span className="rounded-full border border-line px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">Google</span>
             </div>
             <div className="bg-white p-4 text-[#202124]">
-              <p className="text-xs text-[#5f6368]">voxzin.com › articles › {f.slug || 'article-url'}</p>
+              <p className="text-xs text-[#5f6368]">voxzin.com › articles › {articleSlug || 'article-url'}</p>
               <p className="mt-1 line-clamp-1 text-xl leading-snug text-[#1a0dab]">{f.seoTitle || f.title || 'Search result title'}</p>
               <p className="mt-1 line-clamp-2 text-sm text-[#4d5156]">{f.metaDescription || f.excerpt || 'A concise summary of this article will appear here.'}</p>
             </div>
@@ -784,27 +871,47 @@ export function ArticleEditor({ initial, categories, authors, role }: { initial?
           </div>
           <div className="rounded-md border border-line p-3">
             <div className="flex items-center justify-between gap-2 text-sm">
-              <h3 className="font-medium">Content readiness</h3>
-              <span className="text-muted">{readyChecks}/{checks.length} checks</span>
+              <h3 className="font-medium">Our checklist score</h3>
+              <span className="font-semibold text-accent-ink">{checklistScore}/100</span>
             </div>
-            <ul className="mt-2 space-y-2 text-xs">
+            <p className="mt-1 text-xs text-muted">This is an editorial checklist score, not a Google score or ranking prediction.</p>
+            <ul className="mt-3 space-y-3 text-xs">
               {checks.map((check) => (
                 <li key={check.label} className="flex items-start gap-2">
-                  <span aria-hidden="true" className={check.ready ? 'text-green-700 dark:text-green-400' : 'text-amber-700'}>{check.ready ? '✓' : '·'}</span>
-                  <span className={check.ready ? 'text-muted' : 'text-ink'}>{check.label}</span>
+                  <span aria-hidden="true" className={check.ready ? 'text-green-700 dark:text-green-400' : 'text-amber-700'}>{check.ready ? '✓' : '!'}</span>
+                  <span className={check.ready ? 'text-muted' : 'text-ink'}>
+                    <span className="block">{check.label}</span>
+                    {!check.ready && <span className="mt-0.5 block text-muted">Fix: {check.fix}</span>}
+                  </span>
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-xs text-muted">{wordCount} words · {parseSources(sourcesText).length} source{parseSources(sourcesText).length === 1 ? '' : 's'}. Recommendations are guidance, not Google requirements.</p>
-            {!focusKeyword && <p className="mt-2 text-xs text-muted">Add a focus phrase above to enable topic-relevance checks.</p>}
+            {seoAssistantError && <p role="status" className="mt-3 text-xs text-amber-700">Live duplicate checks and related article suggestions are temporarily unavailable: {seoAssistantError}</p>}
+            <p className="mt-3 text-xs text-muted">Add original experience, examples, and useful facts where they strengthen the article. Guidance never blocks saving or publishing.</p>
           </div>
+          {seoAssistant?.related.length ? (
+            <div className="rounded-md border border-line p-3">
+              <h3 className="text-sm font-medium">Related articles you can link</h3>
+              <ul className="mt-2 space-y-2">
+                {seoAssistant.related.map((article) => (
+                  <li key={article.id} className="rounded border border-line p-2 text-xs">
+                    <p className="font-medium">{article.title}</p>
+                    <p className="mt-1 text-muted">{article.excerpt}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Link href={`/articles/${article.slug}`} target="_blank" className="text-accent-ink underline">Preview article</Link>
+                      <button type="button" className={`${btnGhost} px-2 py-1 text-xs`} onClick={() => addRelatedArticleLink(article)} disabled={locked}>Add link to article</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {f.featuredImage?.url && !f.featuredImage.alt.trim() && <p className="text-xs text-amber-700">Add descriptive alt text to the featured image.</p>}
           <div>
             <label className={label} htmlFor="canon">Canonical URL (optional)</label>
             <input id="canon" type="url" className={input} value={f.canonicalUrl ?? ''} onChange={(e) => set('canonicalUrl', e.target.value)} />
             <p className="mt-1 text-xs text-muted">Use the original URL only when this article republishes content from another page. Otherwise, leave blank so VoxZin is canonical.</p>
           </div>
-          {f.slug && <p className="text-xs text-muted">URL slug is fixed after creation: /articles/{f.slug}</p>}
         </section>
 
         <section className={`${card} space-y-3`}>

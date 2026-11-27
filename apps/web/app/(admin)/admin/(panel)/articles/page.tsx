@@ -1,19 +1,29 @@
 import Link from 'next/link';
-import { ARTICLE_STATUSES } from '@voxzin/shared';
-import { btn, card, td, th } from '@/components/admin/ui';
-import { adminGet } from '@/lib/admin-server';
-import { formatDate } from '@/lib/utils';
+import { redirect } from 'next/navigation';
+import { ARTICLE_STATUSES, type ArticleStatus } from '@voxzin/shared';
+import { btn } from '@/components/admin/ui';
+import { ArticleList } from '@/components/admin/article-list';
+import { adminGet, getMe } from '@/lib/admin-server';
 
-interface Item { id: string; title: string; status: string; category: string; author: string; updatedAt: string }
+interface Item { id: string; title: string; status: ArticleStatus; category: string; author: string; updatedAt: string }
 type SP = Promise<{ status?: string; q?: string; page?: string }>;
 
 export default async function ArticlesAdmin({ searchParams }: { searchParams: SP }) {
   const { status, q, page } = await searchParams;
+  const me = await getMe();
+  if (!me) redirect('/admin/login');
   const qs = new URLSearchParams();
   if (status && (ARTICLE_STATUSES as readonly string[]).includes(status)) qs.set('status', status);
   if (q) qs.set('q', q.slice(0, 100));
   if (page && /^\d{1,3}$/.test(page)) qs.set('page', page);
   const data = await adminGet<{ items: Item[]; page: number; totalPages: number; total: number }>(`/admin/articles?${qs}`);
+  const pageHref = (nextPage: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (status) params.set('status', status);
+    params.set('page', String(nextPage));
+    return `/admin/articles?${params}`;
+  };
 
   return (
     <div>
@@ -29,22 +39,18 @@ export default async function ArticlesAdmin({ searchParams }: { searchParams: SP
         </select>
         <button className="rounded-md border border-line bg-surface px-3 py-2 text-sm font-medium">Filter</button>
       </form>
-      <div className={`${card} mt-4 overflow-x-auto p-0`}>
-        <table className="w-full">
-          <thead><tr><th className={th}>Title</th><th className={th}>Status</th><th className={th}>Category</th><th className={th}>Author</th><th className={th}>Updated</th></tr></thead>
-          <tbody>
-            {data.items.length === 0 && <tr><td className={td} colSpan={5}>No articles match.</td></tr>}
-            {data.items.map((a) => (
-              <tr key={a.id} className="border-t border-line">
-                <td className={td}><Link href={`/admin/articles/${a.id}`} className="font-medium text-accent-ink hover:underline">{a.title}</Link></td>
-                <td className={td}>{a.status.replace('_', ' ')}</td><td className={td}>{a.category}</td><td className={td}>{a.author}</td>
-                <td className={td}>{formatDate(a.updatedAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mt-4"><ArticleList items={data.items} role={me.role} /></div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
+        <p>{data.total} total · page {data.page} of {data.totalPages}</p>
+        <nav aria-label="Article pages" className="flex items-center gap-2">
+          {data.page > 1
+            ? <Link className="rounded border border-line px-3 py-1.5 hover:bg-bg" href={pageHref(data.page - 1)}>Previous</Link>
+            : <span className="rounded border border-line px-3 py-1.5 opacity-50">Previous</span>}
+          {data.page < data.totalPages
+            ? <Link className="rounded border border-line px-3 py-1.5 hover:bg-bg" href={pageHref(data.page + 1)}>Next</Link>
+            : <span className="rounded border border-line px-3 py-1.5 opacity-50">Next</span>}
+        </nav>
       </div>
-      <p className="mt-3 text-sm text-muted">{data.total} total · page {data.page} of {data.totalPages}</p>
     </div>
   );
 }

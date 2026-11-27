@@ -4,6 +4,7 @@ import {
   articleFeedbackListQuery,
   articleFeedbackPatchInput,
   articleInput,
+  adminArticleSeoAssistantQuery,
   adminArticleTagSuggestionsQuery,
   adminNewsletterCampaignInput,
   adminNewsletterSubscribersQuery,
@@ -175,6 +176,21 @@ describe('articleInput', () => {
     expect(parsed.success).toBe(true);
     if (parsed.success) expect(parsed.data.focusKeyword).toBe('global technology');
     expect(articleInput.safeParse({ ...article, focusKeyword: 'x'.repeat(81) }).success).toBe(false);
+  });
+
+  it('accepts valid editable slugs and bounds SEO assistant queries', () => {
+    const article = {
+      title: 'A valid title', excerpt: 'A valid excerpt here', content: '<p>Some body text here ok</p>',
+      categoryId: 'a'.repeat(24),
+    };
+    expect(articleInput.safeParse({ ...article, slug: 'custom-article-url' }).success).toBe(true);
+    expect(articleInput.safeParse({ ...article, slug: 'Custom URL' }).success).toBe(false);
+    expect(adminArticleSeoAssistantQuery.safeParse({
+      slug: 'custom-article-url',
+      title: 'A useful headline',
+      excludeId: 'b'.repeat(24),
+    }).success).toBe(true);
+    expect(adminArticleSeoAssistantQuery.safeParse({ slug: { $ne: '' } }).success).toBe(false);
   });
 
   it('accepts bounded social sharing overrides and rejects overlong values', () => {

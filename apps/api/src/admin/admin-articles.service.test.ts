@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rankTrendingTags } from './admin-articles.service';
+import { rankRelatedArticles, rankTrendingTags } from './admin-articles.service';
 
 describe('rankTrendingTags', () => {
   const now = new Date('2025-01-15T12:00:00.000Z').getTime();
@@ -25,6 +25,17 @@ describe('rankTrendingTags', () => {
 
     expect(suggestions.map(({ tag }) => tag)).toEqual(expect.arrayContaining(['Cyclone Akvan', 'Odisha landfall']));
     expect(suggestions.map(({ tag }) => tag)).not.toContain('Cricket final');
+  });
+
+  describe('rankRelatedArticles', () => {
+    it('returns the most relevant published article candidates', () => {
+      const articles = [
+        { _id: { toString: () => '1' }, title: 'Cyclone reaches Odisha coast', slug: 'cyclone-odisha', excerpt: 'Latest cyclone updates' },
+        { _id: { toString: () => '2' }, title: 'Pakistan cricket final', slug: 'cricket-final', excerpt: 'Match report' },
+      ];
+      expect(rankRelatedArticles('Cyclone Odisha coast latest updates', articles).map(({ slug }) => slug)).toEqual(['cyclone-odisha']);
+      expect(rankRelatedArticles('an', articles)).toEqual([]);
+    });
   });
 
   it('deduplicates equivalent tags and ignores topics older than 30 days', () => {

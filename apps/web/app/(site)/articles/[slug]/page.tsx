@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { ArticleCard } from '@/components/article-card';
 import { ArticleBody } from '@/components/article-body';
 import { ArticleFeedback } from '@/components/article-feedback';
@@ -23,7 +23,9 @@ async function load(slug: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const a = await load((await params).slug);
+  const { slug } = await params;
+  const a = await load(slug);
+  if (a.slug !== slug) permanentRedirect(`/articles/${a.slug}`);
   const url = `${SITE_URL}/articles/${a.slug}`;
   const image = a.image ? absoluteUrl(a.image.url) : undefined;
   return {
@@ -53,7 +55,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ArticlePage({ params }: Props) {
-  const a = await load((await params).slug);
+  const { slug } = await params;
+  const a = await load(slug);
+  if (a.slug !== slug) permanentRedirect(`/articles/${a.slug}`);
   const feedback = await getArticleFeedback(a.slug);
   const updated = formatDate(a.updatedAt) !== formatDate(a.publishedAt);
 

@@ -302,6 +302,7 @@ export const mfaCodeInput = z.object({ code: z.string().regex(/^\d{6}$/, 'Enter 
 
 export const articleInput = z.object({
   title: z.string().trim().min(5).max(200),
+  slug: slugSchema.optional(),
   subtitle: z.string().trim().max(300).optional(),
   excerpt: z.string().trim().min(10).max(400),
   content: z.string().min(20).max(200_000),
@@ -326,6 +327,14 @@ export type ArticleInput = z.infer<typeof articleInput>;
 export type ArticlePatchInput = z.infer<typeof articlePatchInput>;
 export const adminArticleTagSuggestionsQuery = z.object({
   q: z.string().trim().min(20).max(2000),
+});
+export const adminArticleSeoAssistantQuery = z.object({
+  title: z.string().trim().max(200).optional(),
+  description: z.string().trim().max(170).optional(),
+  slug: slugSchema.optional(),
+  focusPhrase: z.string().trim().max(80).optional(),
+  q: z.string().trim().max(500).optional(),
+  excludeId: objectIdSchema.optional(),
 });
 
 export const transitionInput = z.object({

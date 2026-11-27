@@ -175,14 +175,15 @@ export class ArticlesService {
   }
 
   async getBySlug(slug: string): Promise<ArticleDetail> {
-    const row = await this.articles
-      .findOne({ ...livePublished(), slug })
+    const findArticle = (filter: Record<string, unknown>) => this.articles
+      .findOne({ ...livePublished(), ...filter })
       .populate('category', 'name slug')
       .populate('author', 'name slug designation')
       .lean<Row & { category: Row['category'] & { _id: unknown } }>();
+    const row = await findArticle({ slug }) ?? await findArticle({ previousSlugs: slug });
     if (!row) throw new NotFoundException('Article not found');
 
-    const related = await this.find({ ...livePublished(), category: row.category._id, slug: { $ne: slug } })
+    const related = await this.find({ ...livePublished(), category: row.category._id, slug: { $ne: row.slug } })
       .sort({ publishedAt: -1 })
       .limit(3)
       .lean<Row[]>();

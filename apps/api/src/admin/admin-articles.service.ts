@@ -14,11 +14,18 @@ interface Row {
   title: string;
   slug: string;
   status: ArticleStatus;
+  updatedAt: Date;
   publishedAt?: Date;
   sources?: unknown[];
   category?: { name: string };
   author?: { name: string };
   [k: string]: unknown;
+}
+interface RelatedRow {
+  _id: { toString(): string };
+  title: string;
+  slug: string;
+  excerpt: string;
 }
 
 const plainText = (html: string) => html.replace(/<[^>]*>/g, ' ');
@@ -92,6 +99,26 @@ export function rankTrendingTags(text: string, topics: readonly TrendTagTopic[],
     .map(({ tag, topic, updatedAt, trendMetric }) => ({ tag, topic, updatedAt, trendMetric }));
 }
 
+export function rankRelatedArticles(text: string, articles: readonly RelatedRow[]) {
+  const queryWords = words(text);
+  if (queryWords.size === 0) return [];
+  return articles
+    .map((article) => {
+      const articleWords = words(`${article.title} ${article.excerpt}`);
+      const overlap = [...queryWords].filter((word) => articleWords.has(word)).length;
+      return { article, score: overlap / Math.max(1, queryWords.size) };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || a.article.title.localeCompare(b.article.title))
+    .slice(0, 5)
+    .map(({ article }) => ({
+      id: article._id.toString(),
+      title: article.title,
+      slug: article.slug,
+      excerpt: article.excerpt,
+    }));
+}
+
 @Injectable()
 export class AdminArticlesService {
   constructor(
@@ -117,9 +144,17 @@ export class AdminArticlesService {
     const base = slugify(title);
     for (let i = 0; i < 50; i++) {
       const slug = i === 0 ? base : `${base}-${i + 1}`;
-      if (!(await this.articles.exists({ slug }))) return slug;
+      if (!(await this.articles.exists({ $or: [{ slug }, { previousSlugs: slug }] }))) return slug;
     }
     return `${base}-${Date.now().toString(36)}`;
+  }
+
+  private async ensureSlugAvailable(slug: string, excludeId?: string) {
+    const filter: Record<string, unknown> = {
+      $or: [{ slug }, { previousSlugs: slug }],
+      ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+    };
+    if (await this.articles.exists(filter)) throw new ConflictException('That article URL is already in use');
   }
 
   private fields(input: ArticlePatchInput, user: AuthUser) {
@@ -206,7 +241,8 @@ export class AdminArticlesService {
     if (user.role === 'author' && authorId !== user.authorId?.toString()) throw new ForbiddenException('Authors can only publish under their own profile');
     if (!(await this.categories.exists({ _id: input.categoryId, isActive: true }))) throw new BadRequestException('Choose an active category');
 
-    const slug = await this.uniqueSlug(input.title);
+    const slug = input.slug ?? await this.uniqueSlug(input.title);
+    await this.ensureSlugAvailable(slug);
     const doc = await this.articles.create({
       ...this.fields({ ...input, authorId }, user),
       slug, status: 'draft', createdBy: user._id, updatedBy: user._id,
@@ -221,10 +257,92 @@ export class AdminArticlesService {
     if (user.role === 'author' && !AUTHOR_EDITABLE.includes(row.status)) throw new ForbiddenException('This article is locked while it is in review');
     if (input.categoryId && !(await this.categories.exists({ _id: input.categoryId, isActive: true }))) throw new BadRequestException('Choose an active category');
     if (input.authorId && user.role === 'author' && input.authorId !== user.authorId?.toString()) throw new ForbiddenException();
-    await this.articles.updateOne({ _id: id }, { $set: { ...this.fields(input, user), updatedBy: user._id } });
+    const update: Record<string, unknown> = { $set: { ...this.fields(input, user), updatedBy: user._id } };
+    if (input.slug && input.slug !== row.slug) {
+      await this.ensureSlugAvailable(input.slug, id);
+      update.$addToSet = { previousSlugs: row.slug };
+    }
+    await this.articles.updateOne({ _id: id }, update);
     await this.audit.log(user._id.toString(), 'article.update', { type: 'article', id }, { fields: Object.keys(input) }, ip);
-    if (row.status === 'published') this.indexNow.notify(`/articles/${row.slug}`);
+    if (row.status === 'published') {
+      this.indexNow.notify(`/articles/${row.slug}`, ...(input.slug ? [`/articles/${input.slug}`] : []));
+    }
     return { id, warnings: input.title ? await this.findDuplicates(input.title, id) : [] };
+  }
+
+  async seoAssistant(query: {
+    title?: string;
+    description?: string;
+    slug?: string;
+    focusPhrase?: string;
+    q?: string;
+    excludeId?: string;
+  }) {
+    const exclude = query.excludeId ? { _id: { $ne: query.excludeId } } : {};
+    const exactMatches = async (field: 'title' | 'metaDescription', value?: string) => {
+      if (!value?.trim()) return [];
+      const fieldFilter = field === 'title'
+        ? { $or: [{ title: { $regex: `^${escapeRegex(value.trim())}$`, $options: 'i' } }, { seoTitle: { $regex: `^${escapeRegex(value.trim())}$`, $options: 'i' } }] }
+        : { metaDescription: { $regex: `^${escapeRegex(value.trim())}$`, $options: 'i' } };
+      return this.articles
+        .find({ ...exclude, status: { $ne: 'archived' }, ...fieldFilter })
+        .select('title')
+        .limit(3)
+        .lean<{ title: string }[]>();
+    };
+    const [titles, descriptions, slugUsed, related] = await Promise.all([
+      exactMatches('title', query.title),
+      exactMatches('metaDescription', query.description),
+      query.slug
+        ? this.articles.exists({
+            ...exclude,
+            $or: [{ slug: query.slug }, { previousSlugs: query.slug }],
+          })
+        : Promise.resolve(false),
+      query.q?.trim()
+        ? this.articles
+            .find({ ...exclude, status: 'published', publishedAt: { $lte: new Date() } })
+            .select('title slug excerpt')
+            .sort({ publishedAt: -1 })
+            .limit(300)
+            .lean<RelatedRow[]>()
+        : Promise.resolve([] as RelatedRow[]),
+    ]);
+    return {
+      duplicates: {
+        title: titles.map((article) => article.title),
+        description: descriptions.map((article) => article.title),
+        slug: Boolean(slugUsed),
+      },
+      related: rankRelatedArticles(`${query.q ?? ''} ${query.focusPhrase ?? ''}`, related),
+    };
+  }
+
+  async navigation(user: AuthUser, id: string) {
+    const row = await this.owned(user, id);
+    const scope = this.scope(user);
+    const updatedAt = row.updatedAt;
+    const newerFilter = {
+      ...scope,
+      $or: [
+        { updatedAt: { $gt: updatedAt } },
+        { updatedAt, _id: { $gt: id } },
+      ],
+    };
+    const olderFilter = {
+      ...scope,
+      $or: [
+        { updatedAt: { $lt: updatedAt } },
+        { updatedAt, _id: { $lt: id } },
+      ],
+    };
+    const [previous, next] = await Promise.all([
+      this.articles.findOne(newerFilter).select('_id title').sort({ updatedAt: 1, _id: 1 }).lean<{ _id: { toString(): string }; title: string }>(),
+      this.articles.findOne(olderFilter).select('_id title').sort({ updatedAt: -1, _id: -1 }).lean<{ _id: { toString(): string }; title: string }>(),
+    ]);
+    const item = (article: { _id: { toString(): string }; title: string } | null) =>
+      article ? { id: article._id.toString(), title: article.title } : null;
+    return { previous: item(previous), next: item(next) };
   }
 
   async transition(user: AuthUser, id: string, to: ArticleStatus, scheduledAt: Date | undefined, ip?: string) {
@@ -253,21 +371,24 @@ export class AdminArticlesService {
     if (input.categoryId && !(await this.categories.exists({ _id: input.categoryId, isActive: true }))) {
       throw new BadRequestException('Choose an active category');
     }
+    if (input.slug && input.slug !== row.slug) await this.ensureSlugAvailable(input.slug, id);
     const sources = input.sources ?? row.sources;
     if (!sources?.length) {
       throw new BadRequestException('Add at least one source before publishing');
     }
 
+    const update: Record<string, unknown> = {
+      $set: {
+        ...this.fields(input, user),
+        status: 'published',
+        publishedAt: row.publishedAt ?? new Date(),
+        updatedBy: user._id,
+      },
+    };
+    if (input.slug && input.slug !== row.slug) update.$addToSet = { previousSlugs: row.slug };
     const result = await this.articles.updateOne(
       { _id: id, status: row.status, ...this.scope(user) },
-      {
-        $set: {
-          ...this.fields(input, user),
-          status: 'published',
-          publishedAt: row.publishedAt ?? new Date(),
-          updatedBy: user._id,
-        },
-      },
+      update,
     );
     if (result.matchedCount !== 1) throw new ConflictException('Article status changed; refresh and try publishing again');
 
@@ -275,7 +396,7 @@ export class AdminArticlesService {
       await this.audit.log(user._id.toString(), 'article.update', { type: 'article', id }, { fields: Object.keys(input) }, ip);
     }
     await this.audit.log(user._id.toString(), 'article.published', { type: 'article', id }, { from: row.status }, ip);
-    this.indexNow.notify(`/articles/${row.slug}`, '/', '/latest');
+    this.indexNow.notify(`/articles/${row.slug}`, ...(input.slug ? [`/articles/${input.slug}`] : []), '/', '/latest');
     return { id, status: 'published' as const };
   }
 

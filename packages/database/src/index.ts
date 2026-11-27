@@ -44,6 +44,7 @@ export const ArticleSchema = new Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 200 },
     slug: { type: String, required: true, unique: true, match: SLUG },
+    previousSlugs: { type: [String], default: [] },
     subtitle: { type: String, maxlength: 300 },
     excerpt: { type: String, required: true, maxlength: 400 },
     content: { type: String, required: true },
