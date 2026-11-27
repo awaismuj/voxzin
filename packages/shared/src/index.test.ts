@@ -69,6 +69,14 @@ describe('auditArticleHeadings', () => {
       skipsLevel: false,
     });
   });
+
+  it('recognizes markdown H2 markers stored inside paragraphs', () => {
+    expect(auditArticleHeadings('<p>Intro</p><p>## First section</p><p>## Second section</p>')).toEqual({
+      h1Count: 0,
+      sectionHeadingCount: 2,
+      skipsLevel: false,
+    });
+  });
 });
 
 describe('article feedback validation', () => {

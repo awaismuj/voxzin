@@ -239,7 +239,8 @@ export function auditArticleHeadings(html: string): {
   sectionHeadingCount: number;
   skipsLevel: boolean;
 } {
-  const levels = [...html.matchAll(/<h([1-6])\b[^>]*>/gi)].map((match) => Number(match[1]));
+  const levels = [...html.matchAll(/<h([1-6])\b[^>]*>|<p\b[^>]*>\s*##\s/gi)]
+    .map((match) => match[1] ? Number(match[1]) : 2);
   let previousLevel = 1;
   let skipsLevel = false;
   for (const level of levels) {

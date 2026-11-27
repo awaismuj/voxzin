@@ -6,9 +6,13 @@ const allowedTags = [
   'table', 'thead', 'tbody', 'tr', 'th', 'td', 'pre', 'code',
 ];
 
+export function normalizeMarkdownHeadings(html: string): string {
+  return html.replace(/<p\b[^>]*>\s*##\s+([\s\S]*?)\s*<\/p>/gi, (_match, heading: string) => `<h2>${heading.trim()}</h2>`);
+}
+
 /** Sanitizes rich-text article HTML before it is sent to a browser. */
 export function sanitizeArticleHtml(html: string): string {
-  return sanitizeHtml(html, {
+  return sanitizeHtml(normalizeMarkdownHeadings(html), {
     allowedTags,
     allowedAttributes: {
       a: ['href', 'title', 'rel', 'target'],

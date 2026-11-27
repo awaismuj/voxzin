@@ -19,4 +19,9 @@ describe('sanitizeArticleHtml', () => {
     expect(out).toContain('data-size="medium"');
     expect(out).not.toContain('style=');
   });
+
+  it('converts paragraph-wrapped markdown H2 markers into semantic headings', () => {
+    expect(sanitizeArticleHtml('<p>## A section heading</p><p>### Not converted to H2</p>'))
+      .toBe('<h2>A section heading</h2><p>### Not converted to H2</p>');
+  });
 });

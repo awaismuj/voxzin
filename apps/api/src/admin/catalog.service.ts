@@ -297,11 +297,17 @@ export class CatalogService implements OnModuleInit {
               input: {
                 $regexFindAll: {
                   input: { $ifNull: ['$content', ''] },
-                  regex: /<h([1-6])\b[^>]*>/i,
+                  regex: /<h([1-6])\b[^>]*>|<p\b[^>]*>\s*##\s/i,
                 },
               },
               as: 'heading',
-              in: { $toInt: { $arrayElemAt: ['$$heading.captures', 0] } },
+              in: {
+                $cond: [
+                  { $ne: [{ $arrayElemAt: ['$$heading.captures', 0] }, null] },
+                  { $toInt: { $arrayElemAt: ['$$heading.captures', 0] } },
+                  2,
+                ],
+              },
             },
           },
         },

@@ -5,7 +5,7 @@ import {
   type ArticleInput, type ArticlePatchInput, type ArticleStatus,
 } from '@voxzin/shared';
 import { AuditService } from '../auth/audit.service';
-import { sanitizeArticleHtml } from '../common/sanitize';
+import { normalizeMarkdownHeadings, sanitizeArticleHtml } from '../common/sanitize';
 import { IndexNowService } from '../seo/indexnow.service';
 import { escapeRegex, type AuthUser, type M } from '../common/types';
 
@@ -198,7 +198,11 @@ export class AdminArticlesService {
 
   async get(user: AuthUser, id: string) {
     const row = await this.owned(user, id);
-    return { ...row, id: row._id.toString() };
+    return {
+      ...row,
+      content: typeof row.content === 'string' ? normalizeMarkdownHeadings(row.content) : row.content,
+      id: row._id.toString(),
+    };
   }
 
   async suggestTags(text: string) {
